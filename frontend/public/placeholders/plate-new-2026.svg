@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" font-family="Cairo, system-ui, sans-serif">
+  <rect width="1200" height="800" fill="#F7F5F3"/>
+  <g transform="translate(600,400)">
+    <circle cx="0" cy="-200" r="46" fill="none" stroke="#8A1538" stroke-width="22"/>
+    <rect x="-320" y="-110" width="640" height="240" rx="32" fill="#FFFFFF" stroke="#E8E2DD" stroke-width="5"/>
+    <rect x="-320" y="-110" width="96" height="240" rx="32" fill="#8A1538"/>
+    <text x="48" y="30" text-anchor="middle" font-size="96" font-weight="800" fill="#5C0E26">2026</text>
+    <text x="-272" y="30" text-anchor="middle" font-size="72" font-weight="800" fill="#FFFFFF">Q</text>
+  </g>
+</svg>

@@ -1,0 +1,190 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import {
+  getAdminMetrics,
+  getAdminOrders,
+  getAdminOrderItems,
+  updateOrderItemStatus,
+  ORDER_STATUSES,
+  type AdminMetrics,
+  type AdminOrder,
+  type AdminOrderItem,
+} from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { MetricsCards } from "./MetricsCards";
+import { FunnelMetrics } from "./FunnelMetrics";
+import { OrdersTable } from "./OrdersTable";
+import { ProductionItemsTable } from "./ProductionItemsTable";
+import { plateStyles } from "@/data/plateStyles";
+
+type Tab = "orders" | "production";
+
+export function AdminDashboard({
+  token,
+  onLogout,
+}: {
+  token: string;
+  onLogout: () => void;
+}) {
+  const [tab, setTab] = useState<Tab>("orders");
+  const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [items, setItems] = useState<AdminOrderItem[]>([]);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [styleFilter, setStyleFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadMetrics = useCallback(async () => {
+    try {
+      setMetrics(await getAdminMetrics(token));
+    } catch {
+      /* metrics are non-blocking */
+    }
+  }, [token]);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (tab === "orders") {
+        const res = await getAdminOrders(token, {
+          status: statusFilter || undefined,
+          search: search || undefined,
+        });
+        setOrders(res.orders);
+      } else {
+        const res = await getAdminOrderItems(token, {
+          status: statusFilter || undefined,
+          plate_style: styleFilter || undefined,
+          search: search || undefined,
+        });
+        setItems(res.items);
+      }
+    } catch {
+      setError("Failed to load data. Check the API connection and token.");
+    } finally {
+      setLoading(false);
+    }
+  }, [token, tab, statusFilter, styleFilter, search]);
+
+  useEffect(() => {
+    void loadMetrics();
+  }, [loadMetrics]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  const handleStatusChange = async (itemId: string, status: string) => {
+    try {
+      const updated = await updateOrderItemStatus(token, itemId, status);
+      setItems((prev) =>
+        prev.map((it) => (it.id === itemId ? { ...it, ...updated } : it))
+      );
+      void loadMetrics();
+    } catch {
+      setError("Failed to update status. Try again.");
+    }
+  };
+
+  return (
+    <div dir="ltr" className="container-wide space-y-6 py-8 text-left">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold text-charcoal">
+          keychain.qa — Admin
+        </h1>
+        <Button variant="outline" size="sm" onClick={onLogout}>
+          Logout
+        </Button>
+      </div>
+
+      {metrics ? (
+        <>
+          <MetricsCards metrics={metrics} />
+          <FunnelMetrics metrics={metrics} />
+        </>
+      ) : (
+        <p className="text-sm text-muted">Loading metrics...</p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-warmgray pb-2">
+        <button
+          type="button"
+          onClick={() => setTab("orders")}
+          className={tab === "orders" ? tabActive : tabIdle}
+        >
+          Orders
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("production")}
+          className={tab === "production" ? tabActive : tabIdle}
+        >
+          Production Items
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="w-44">
+          <Select
+            value={statusFilter}
+            placeholder="All statuses"
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={[
+              { value: "", label: "All statuses" },
+              ...ORDER_STATUSES.map((s) => ({ value: s, label: s })),
+            ]}
+          />
+        </div>
+        {tab === "production" ? (
+          <div className="w-48">
+            <Select
+              value={styleFilter}
+              placeholder="All plate styles"
+              onChange={(e) => setStyleFilter(e.target.value)}
+              options={[
+                { value: "", label: "All plate styles" },
+                ...plateStyles.map((p) => ({ value: p.id, label: p.id })),
+              ]}
+            />
+          </div>
+        ) : null}
+        <div className="w-56">
+          <Input
+            placeholder="Search order # or phone"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Button size="sm" variant="outline" onClick={() => loadData()}>
+          Refresh
+        </Button>
+      </div>
+
+      {error ? (
+        <p className="text-sm font-medium text-maroon">{error}</p>
+      ) : null}
+
+      {loading ? (
+        <p className="text-sm text-muted">Loading...</p>
+      ) : tab === "orders" ? (
+        <OrdersTable orders={orders} />
+      ) : (
+        <ProductionItemsTable
+          items={items}
+          onStatusChange={handleStatusChange}
+        />
+      )}
+    </div>
+  );
+}
+
+const tabActive =
+  "rounded-md bg-maroon px-4 py-2 text-sm font-bold text-white";
+const tabIdle =
+  "rounded-md px-4 py-2 text-sm font-bold text-muted hover:text-maroon";

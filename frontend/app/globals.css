@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   Cairo (self-hosted variable font) — Google Fonts via @fontsource.
+   Files live in /public/fonts/cairo/ and are copied from
+   node_modules/@fontsource-variable/cairo/files/*.
+   No network fetch from fonts.googleapis.com at build/runtime.
+   ───────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "Cairo";
+  src: url("/fonts/cairo/cairo-arabic-variable.woff2") format("woff2-variations"),
+       url("/fonts/cairo/cairo-arabic-variable.woff2") format("woff2");
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891,
+                 U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011,
+                 U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+}
+
+@font-face {
+  font-family: "Cairo";
+  src: url("/fonts/cairo/cairo-latin-variable.woff2") format("woff2-variations"),
+       url("/fonts/cairo/cairo-latin-variable.woff2") format("woff2");
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+                 U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+                 U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+                 U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Cairo";
+  src: url("/fonts/cairo/cairo-latin-ext-variable.woff2") format("woff2-variations"),
+       url("/fonts/cairo/cairo-latin-ext-variable.woff2") format("woff2");
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F,
+                 U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+                 U+2C60-2C7F, U+A720-A7FF;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    /* Single canonical font token consumed by Tailwind fontFamily.sans
+       and the global button rule below. */
+    --font-cairo: "Cairo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-size: 16px;
+  }
+
+  body {
+    @apply bg-soft text-charcoal antialiased;
+    font-weight: 400;
+    font-feature-settings: "kern", "liga", "calt";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Heading element defaults — components should prefer .text-section-title etc. */
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+    font-weight: 600;
+  }
+  h1 { @apply text-3xl tracking-tight text-charcoal; line-height: 1.25; }
+  h2 { @apply text-xl  tracking-tight text-charcoal; line-height: 1.35; }
+  h3 { @apply text-lg                  text-charcoal; line-height: 1.45; }
+  h4 { @apply text-base                text-charcoal; line-height: 1.55; }
+
+  p { line-height: 1.9; }
+
+  /* Global button baseline — enforces Cairo 700 / perfect centering on every <button>.
+     Variant components (.text-button etc.) layer on top via more specific selectors. */
+  button {
+    font-family: var(--font-cairo);
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  ::selection { background-color: rgba(138, 21, 56, 0.12); }
+}
+
+@layer components {
+  /* ── Layout containers ───────────────────────────── */
+  .container-page { @apply mx-auto w-full max-w-3xl px-4 sm:px-6; }
+  .container-wide { @apply mx-auto w-full max-w-6xl px-4 sm:px-6; }
+
+  /* ─────────────────────────────────────────────────
+     Typography tokens — premium Arabic system
+     Use these instead of ad-hoc text-* combos.
+     ───────────────────────────────────────────────── */
+
+  /* Hero headline — Cairo 700, confident */
+  .text-hero {
+    font-size: clamp(1.875rem, 5.5vw, 2.75rem); /* 30 → 44px */
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    color: #171717;
+    text-wrap: balance;
+  }
+
+  /* Hero supporting paragraph — soft, generous */
+  .text-hero-subtitle {
+    font-size: clamp(0.9375rem, 1.6vw, 1.0625rem); /* 15 → 17px */
+    font-weight: 400;
+    line-height: 2;
+    color: #6B625F;
+    text-wrap: pretty;
+  }
+
+  /* Section heading — “كيف نشتغل؟” etc. */
+  .text-section-title {
+    font-size: clamp(1.25rem, 2.5vw, 1.625rem); /* 20 → 26px */
+    font-weight: 700;
+    line-height: 1.4;
+    color: #171717;
+    text-wrap: balance;
+  }
+
+  /* Card/step title under icons */
+  .text-card-title {
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 600;
+    line-height: 1.55;
+    color: #171717;
+  }
+
+  /* Body copy inside cards / descriptions */
+  .text-card-body {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 400;
+    line-height: 1.75;
+    color: #6B625F;
+  }
+
+  /* Button label — Cairo 700, balanced */
+  .text-button {
+    font-size: 1rem; /* 16px */
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  /* Small helper / chip text */
+  .text-caption {
+    font-size: 0.8125rem; /* 13px */
+    font-weight: 500;
+    line-height: 1.65;
+    color: #6B625F;
+  }
+
+  /* Form field label above input */
+  .text-form-label {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    line-height: 1.5;
+    color: #171717;
+  }
+
+  /* Input value text */
+  .text-form-input {
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 500;
+    line-height: 1.5;
+    color: #171717;
+  }
+
+  /* ── Form feedback ───────────────────────────────── */
+  .field-error {
+    @apply mt-1.5 text-sm font-medium text-maroon;
+  }
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

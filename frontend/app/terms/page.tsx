@@ -1,0 +1,14 @@
+import type { Metadata } from "next";
+import { copy } from "@/data/copy";
+import { StaticPage } from "@/components/layout/StaticPage";
+
+export const metadata: Metadata = { title: copy.pages.terms.title };
+
+export default function TermsPage() {
+  return (
+    <StaticPage
+      title={copy.pages.terms.title}
+      paragraphs={copy.pages.terms.body}
+    />
+  );
+}

@@ -1,0 +1,102 @@
+# docker-compose.example.yml — keychain.qa local full-stack
+#
+# Spins up Postgres + FastAPI backend + Next.js frontend for local end-to-end testing.
+# Copy to docker-compose.yml (or run with -f docker-compose.example.yml) and fill env values.
+#
+#   docker compose -f docker-compose.example.yml up --build
+#
+# Health check after start:  http://localhost:8000/api/health
+# Frontend:                   http://localhost:3000
+#
+# NOTE: This mirrors the Easypanel topology. The Postgres service hostname is
+# "keychain_database" so DATABASE_URL matches production exactly.
+
+services:
+  keychain_database:
+    image: postgres:16-alpine
+    container_name: keychain_database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keychain
+      POSTGRES_USER: keychain
+      POSTGRES_PASSWORD: keychain
+    volumes:
+      - keychain_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keychain -d keychain"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: keychain_backend
+    restart: unless-stopped
+    depends_on:
+      keychain_database:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: development
+      FRONTEND_URL: http://localhost:3000
+      BACKEND_URL: http://localhost:8000
+      # Internal URL — host matches the postgres service name above.
+      DATABASE_URL: postgres://keychain:keychain@keychain_database:5432/keychain?sslmode=disable
+      SECRET_KEY: change_me_dev
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: change_me_strong_password
+      WHATSAPP_NUMBER: "97433423421"
+      GOOGLE_SHEETS_ENABLED: "false"          # set true + fill creds to test Sheets sync
+      GOOGLE_SHEET_ID: ""
+      GOOGLE_SHEET_TAB_NAME: order_items
+      GOOGLE_SERVICE_ACCOUNT_JSON: ""
+      ENABLE_SNAPCHAT_CAPI: "false"           # set true + fill token to test CAPI
+      SNAP_PIXEL_ID: ""
+      SNAP_ACCESS_TOKEN: ""
+      ENABLE_META_CAPI: "false"
+      META_PIXEL_ID: ""
+      META_CAPI_ACCESS_TOKEN: ""
+      ENABLE_TIKTOK_EVENTS: "false"
+      TIKTOK_PIXEL_ID: ""
+      TIKTOK_ACCESS_TOKEN: ""
+      RATE_LIMIT_PER_MINUTE: "20"
+      CORS_ORIGINS: http://localhost:3000
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    # The backend image's start.sh runs:  alembic upgrade head && uvicorn app.main:app ...
+    command: ["./start.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: keychain_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_BRAND_NAME_AR: ميدالية رقم السيارة
+      NEXT_PUBLIC_MARKET: QA
+      NEXT_PUBLIC_CURRENCY: QAR
+      NEXT_PUBLIC_WHATSAPP_NUMBER: "97433423421"
+      NEXT_PUBLIC_ENABLE_SNAPCHAT: "true"
+      NEXT_PUBLIC_SNAP_PIXEL_ID: ""
+      NEXT_PUBLIC_ENABLE_META: "false"
+      NEXT_PUBLIC_META_PIXEL_ID: ""
+      NEXT_PUBLIC_ENABLE_TIKTOK: "false"
+      NEXT_PUBLIC_TIKTOK_PIXEL_ID: ""
+    ports:
+      - "3000:3000"
+
+volumes:
+  keychain_pgdata:
