@@ -134,7 +134,7 @@ export function trackEvent(
     const ctx = buildTrackingContext();
 
     // Browser-side Snapchat pixel (dedupe via event_id where the SDK supports it).
-    fireSnapchatPixel(name);
+    fireSnapchatPixel(name, options.extra);
 
     const body = {
       event_name: name,
@@ -171,7 +171,10 @@ const snapEventMap: Partial<Record<TrackingEventName, string>> = {
   Purchase: "PURCHASE",
 };
 
-function fireSnapchatPixel(name: TrackingEventName) {
+function fireSnapchatPixel(
+  name: TrackingEventName,
+  extra?: Record<string, unknown>
+) {
   if (!config.snapchat.enabled) return;
   if (typeof window === "undefined") return;
   const snaptr = (window as unknown as { snaptr?: (...args: unknown[]) => void })
@@ -180,8 +183,33 @@ function fireSnapchatPixel(name: TrackingEventName) {
   const snapEvent = snapEventMap[name];
   if (!snapEvent) return;
   try {
-    snaptr("track", snapEvent);
+    const payload = buildSnapPayload(name, extra);
+    if (payload) {
+      snaptr("track", snapEvent, payload);
+    } else {
+      snaptr("track", snapEvent);
+    }
   } catch {
     /* swallow */
   }
+}
+
+function buildSnapPayload(
+  name: TrackingEventName,
+  extra?: Record<string, unknown>
+): Record<string, unknown> | null {
+  if (name === "Purchase") {
+    const value =
+      typeof extra?.value === "number" ? (extra.value as number) : 160;
+    return {
+      currency: "QAR",
+      price: value,
+      item_category: "custom car plate keychain",
+      description: "ميدالية رقم السيارة",
+      ...(extra?.order_number
+        ? { transaction_id: String(extra.order_number) }
+        : {}),
+    };
+  }
+  return null;
 }

@@ -7,6 +7,14 @@ function bool(value: string | undefined): boolean {
   return value === "true" || value === "1";
 }
 
+function csv(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export const config = {
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://keychain.qa",
   apiUrl: process.env.NEXT_PUBLIC_API_URL || "https://api.keychain.qa",
@@ -17,7 +25,14 @@ export const config = {
 
   snapchat: {
     enabled: bool(process.env.NEXT_PUBLIC_ENABLE_SNAPCHAT),
-    pixelId: process.env.NEXT_PUBLIC_SNAP_PIXEL_ID || "",
+    // Supports either NEXT_PUBLIC_SNAP_PIXEL_IDS (comma-separated, multi-pixel)
+    // or the legacy single NEXT_PUBLIC_SNAP_PIXEL_ID.
+    pixelIds: (() => {
+      const many = csv(process.env.NEXT_PUBLIC_SNAP_PIXEL_IDS);
+      if (many.length) return many;
+      const one = (process.env.NEXT_PUBLIC_SNAP_PIXEL_ID || "").trim();
+      return one ? [one] : [];
+    })(),
   },
   meta: {
     enabled: bool(process.env.NEXT_PUBLIC_ENABLE_META),

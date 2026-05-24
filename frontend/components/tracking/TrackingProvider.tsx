@@ -1,28 +1,30 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { SnapchatPixel } from "./SnapchatPixel";
 import { MetaPixel } from "./MetaPixel";
 import { TikTokPixel } from "./TikTokPixel";
 import { buildTrackingContext, trackEvent } from "@/lib/tracking";
 
 /**
- * Mounts pixels (each self-gates on its enable flag) and fires the initial
- * PageView event to the backend. Tracking never blocks rendering.
+ * Mounts pixels (each self-gates on its enable flag) and fires PageView on every
+ * route change. Tracking never blocks rendering.
  */
 export function TrackingProvider({ children }: { children: React.ReactNode }) {
-  const fired = useRef(false);
+  const pathname = usePathname();
+  const lastPath = useRef<string | null>(null);
 
   useEffect(() => {
-    if (fired.current) return;
-    fired.current = true;
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
     try {
-      buildTrackingContext(); // capture + persist attribution on first load
+      buildTrackingContext();
       trackEvent("PageView", { stepName: "page_view" });
     } catch {
       /* never block */
     }
-  }, []);
+  }, [pathname]);
 
   return (
     <>
