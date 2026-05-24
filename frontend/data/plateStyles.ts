@@ -4,6 +4,7 @@ export type PlateStyleId =
   | "classic"
   | "motorcycle"
   | "qatar_side_flag"
+  | "qatar_vertical_plate"
   | "custom_choice";
 
 export type PlateLetter = "Q" | "T" | "R";
@@ -53,6 +54,13 @@ export const plateStyles: PlateStyle[] = [
     id: "qatar_side_flag",
     titleAr: "لوحة قطر الجانبية",
     image: "/placeholders/plate-styles/plate-side-flag.png",
+    requiresPlateNumber: true,
+    supportsLetter: false,
+  },
+  {
+    id: "qatar_vertical_plate",
+    titleAr: "لوحة قطر العمودية",
+    image: "/placeholders/plate-styles/plate-qatar-vertical.png",
     requiresPlateNumber: true,
     supportsLetter: false,
   },

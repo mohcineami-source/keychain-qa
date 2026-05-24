@@ -23,6 +23,7 @@ PLATE_STYLES = [
     "classic",
     "motorcycle",
     "qatar_side_flag",
+    "qatar_vertical_plate",
     "custom_choice",
 ]
 
@@ -33,6 +34,7 @@ PLATE_STYLE_LABELS_AR = {
     "classic": "اللوحة الكلاسيكية",
     "motorcycle": "لوحة الدراجة النارية",
     "qatar_side_flag": "لوحة قطر الجانبية",
+    "qatar_vertical_plate": "لوحة قطر العمودية",
     "custom_choice": "اختيار مخصص",
 }
 
