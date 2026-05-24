@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Info } from "lucide-react";
 import { copy } from "@/data/copy";
 import {
@@ -67,12 +66,7 @@ export function PlateSelectionStep() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <h2 className="text-center text-2xl font-extrabold text-charcoal">
         {copy.plateSelection.title}
       </h2>
@@ -137,6 +131,6 @@ export function PlateSelectionStep() {
       <Button size="full" onClick={handleNext} className="text-lg">
         {copy.plateSelection.next}
       </Button>
-    </motion.div>
+    </div>
   );
 }

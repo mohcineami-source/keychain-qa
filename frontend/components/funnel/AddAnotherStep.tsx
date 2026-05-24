@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { copy } from "@/data/copy";
 import { Button } from "@/components/ui/button";
@@ -36,12 +35,7 @@ export function AddAnotherStep() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <h2 className="text-center text-2xl font-extrabold text-charcoal">
         {copy.addAnother.title}
       </h2>
@@ -120,6 +114,6 @@ export function AddAnotherStep() {
           {copy.addAnother.addAnother}
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }

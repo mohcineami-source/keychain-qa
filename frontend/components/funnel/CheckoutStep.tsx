@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { copy } from "@/data/copy";
 import { Button } from "@/components/ui/button";
@@ -94,12 +93,7 @@ export function CheckoutStep() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <h2 className="text-center text-2xl font-extrabold text-charcoal">
         {copy.checkout.title}
       </h2>
@@ -225,7 +219,7 @@ export function CheckoutStep() {
           {isSubmitting ? copy.checkout.submitting : copy.checkout.submit}
         </Button>
       </form>
-    </motion.div>
+    </div>
   );
 }
 

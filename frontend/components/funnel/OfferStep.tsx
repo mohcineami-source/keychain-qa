@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 import { Truck, Clock } from "lucide-react";
 import { copy } from "@/data/copy";
 import { Button } from "@/components/ui/button";
@@ -26,11 +25,7 @@ export function OfferStep() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.25, 0, 0, 1] }}
-    >
+    <div>
       <ProductSlider />
 
       {/* Hero text — close to slider, one thought */}
@@ -66,7 +61,7 @@ export function OfferStep() {
           {copy.offer.cta}
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
