@@ -27,22 +27,16 @@ def _sheet_id_preview() -> str:
     return sid[:6] if sid else ""
 
 
-def _service_account_email() -> str:
-    """Parse client_email from the service account JSON without exposing
-    private_key or any other field."""
-    info = google_sheets._load_credentials_info()  # noqa: SLF001
-    if not info:
-        return ""
-    email = info.get("client_email")
-    return email if isinstance(email, str) else ""
-
-
 @router.get("/google-sheets")
 def google_sheets_status() -> dict[str, Any]:
     """Diagnostic snapshot of the Google Sheets config + last 5 sync results.
 
     Safe to call from any environment — does not expose secrets.
     """
+    diag = google_sheets.credentials_diagnostic()
+    info = diag.get("info") or {}
+    client_email = info.get("client_email", "") if isinstance(info, dict) else ""
+
     SessionLocal = get_sessionmaker()
     db = SessionLocal()
     try:
@@ -79,7 +73,12 @@ def google_sheets_status() -> dict[str, Any]:
         ),
         "sheet_id_preview": _sheet_id_preview(),
         "tab_name": settings.GOOGLE_SHEET_TAB_NAME or "order_items",
-        "service_account_email": _service_account_email(),
+        "service_account_email": client_email,
+        "credentials_status": diag.get("status"),
+        "credentials_raw_length": diag.get("raw_length"),
+        # Only present when JSON+base64 parsing both failed:
+        "credentials_json_error": diag.get("json_error"),
+        "credentials_base64_error": diag.get("base64_error"),
         "is_enabled_check": google_sheets.is_enabled(),
         "recent_order_items": recent,
     }
@@ -89,23 +88,12 @@ def google_sheets_status() -> dict[str, Any]:
 def google_sheets_test_append() -> dict[str, Any]:
     """Attempt to append one diagnostic row to the configured sheet.
 
-    Returns success + row number on success, or a short error string on
+    Returns success + row number on success, or a short error label on
     failure. Never includes secrets in the response.
     """
-    if not google_sheets.is_enabled():
-        return {
-            "success": False,
-            "error": "google_sheets_not_enabled_or_misconfigured",
-            "google_sheets_enabled": bool(settings.GOOGLE_SHEETS_ENABLED),
-            "has_google_sheet_id": bool((settings.GOOGLE_SHEET_ID or "").strip()),
-            "has_service_account_json": bool(
-                (settings.GOOGLE_SERVICE_ACCOUNT_JSON or "").strip()
-            ),
-        }
-
     now_iso = datetime.now(timezone.utc).isoformat()
     try:
-        row_number = google_sheets.append_item_row(
+        row_number, err = google_sheets.append_item_row_with_error(
             order_number="KCQ-TEST",
             item_number=1,
             customer_name="DEBUG_TEST",
@@ -121,8 +109,8 @@ def google_sheets_test_append() -> dict[str, Any]:
             created_at=now_iso,
         )
     except Exception as exc:  # noqa: BLE001
-        # append_item_row is supposed to swallow internally — this catch is
-        # belt-and-braces so the endpoint never 500s.
+        # append_item_row_with_error is supposed to swallow internally — this
+        # catch is belt-and-braces so the endpoint never 500s.
         logger.exception("debug_test_append_unexpected_error")
         return {
             "success": False,
@@ -133,7 +121,7 @@ def google_sheets_test_append() -> dict[str, Any]:
     if row_number is None:
         return {
             "success": False,
-            "error": "append_returned_none_check_server_logs",
+            "error": err or "append_returned_none",
         }
     return {
         "success": True,
