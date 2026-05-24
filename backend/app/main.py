@@ -13,7 +13,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from .config import settings
 from .logging_config import configure_logging, get_logger
 from .middleware import RateLimitMiddleware, RequestLoggingMiddleware
-from .routers import admin, health, orders, tracking
+from .routers import admin, debug, health, orders, tracking
 
 configure_logging()
 logger = get_logger("keychain.main")
@@ -45,6 +45,8 @@ app.include_router(health.router, tags=["health"])
 app.include_router(orders.router, tags=["orders"])
 app.include_router(tracking.router, tags=["tracking"])
 app.include_router(admin.router, tags=["admin"])
+# TODO: remove once Google Sheets sync is confirmed working in production.
+app.include_router(debug.router)
 
 
 @app.exception_handler(RequestValidationError)
