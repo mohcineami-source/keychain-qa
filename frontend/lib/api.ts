@@ -110,8 +110,25 @@ export interface AdminMetrics {
   dropoff_by_step: Record<string, number>;
 }
 
-export function getAdminMetrics(token: string): Promise<AdminMetrics> {
-  return request<AdminMetrics>("/api/admin/metrics", {
+export interface DateRangeParams {
+  start_date?: string;
+  end_date?: string;
+}
+
+function appendDateRange(qs: URLSearchParams, range?: DateRangeParams): void {
+  if (!range) return;
+  if (range.start_date) qs.set("start_date", range.start_date);
+  if (range.end_date) qs.set("end_date", range.end_date);
+}
+
+export function getAdminMetrics(
+  token: string,
+  range?: DateRangeParams
+): Promise<AdminMetrics> {
+  const qs = new URLSearchParams();
+  appendDateRange(qs, range);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return request<AdminMetrics>(`/api/admin/metrics${suffix}`, {
     method: "GET",
     headers: authHeaders(token),
   });
@@ -132,7 +149,7 @@ export interface AdminOrder {
 }
 
 export interface AdminOrdersResponse {
-  orders: AdminOrder[];
+  items: AdminOrder[];
   total: number;
   page: number;
   page_size: number;
@@ -140,12 +157,19 @@ export interface AdminOrdersResponse {
 
 export function getAdminOrders(
   token: string,
-  params: { status?: string; search?: string; page?: number } = {}
+  params: {
+    status?: string;
+    search?: string;
+    page?: number;
+    start_date?: string;
+    end_date?: string;
+  } = {}
 ): Promise<AdminOrdersResponse> {
   const qs = new URLSearchParams();
   if (params.status) qs.set("status", params.status);
   if (params.search) qs.set("search", params.search);
   if (params.page) qs.set("page", String(params.page));
+  appendDateRange(qs, params);
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return request<AdminOrdersResponse>(`/api/admin/orders${suffix}`, {
     method: "GET",
@@ -179,13 +203,21 @@ export interface AdminOrderItemsResponse {
 
 export function getAdminOrderItems(
   token: string,
-  params: { status?: string; plate_style?: string; search?: string; page?: number } = {}
+  params: {
+    status?: string;
+    plate_style?: string;
+    search?: string;
+    page?: number;
+    start_date?: string;
+    end_date?: string;
+  } = {}
 ): Promise<AdminOrderItemsResponse> {
   const qs = new URLSearchParams();
   if (params.status) qs.set("status", params.status);
   if (params.plate_style) qs.set("plate_style", params.plate_style);
   if (params.search) qs.set("search", params.search);
   if (params.page) qs.set("page", String(params.page));
+  appendDateRange(qs, params);
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return request<AdminOrderItemsResponse>(`/api/admin/order-items${suffix}`, {
     method: "GET",

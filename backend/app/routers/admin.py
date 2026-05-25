@@ -2,8 +2,14 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import date, datetime, time, timedelta, timezone
+from typing import Optional, Tuple
+
+try:
+    from zoneinfo import ZoneInfo
+    _QATAR_TZ = ZoneInfo("Asia/Qatar")
+except Exception:  # noqa: BLE001
+    _QATAR_TZ = timezone(timedelta(hours=3))  # Qatar is UTC+3, no DST.
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
@@ -36,6 +42,38 @@ from ..services.metrics import build_metrics
 
 router = APIRouter(prefix="/api/admin")
 logger = get_logger("keychain.admin")
+
+
+def _parse_qatar_date(value: str, field: str) -> date:
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid {field}: expected YYYY-MM-DD",
+        )
+
+
+def _date_range_to_utc(
+    start_date: Optional[str],
+    end_date: Optional[str],
+) -> Tuple[Optional[datetime], Optional[datetime]]:
+    """Interpret start/end dates in Asia/Qatar; return [start_utc, end_utc) bounds.
+
+    end_date is treated inclusively: bound becomes midnight of end_date + 1 day, Qatar local.
+    """
+    start_dt: Optional[datetime] = None
+    end_dt: Optional[datetime] = None
+    if start_date:
+        d = _parse_qatar_date(start_date, "start_date")
+        start_dt = datetime.combine(d, time.min, tzinfo=_QATAR_TZ).astimezone(timezone.utc)
+    if end_date:
+        d = _parse_qatar_date(end_date, "end_date")
+        end_local = datetime.combine(d, time.min, tzinfo=_QATAR_TZ) + timedelta(days=1)
+        end_dt = end_local.astimezone(timezone.utc)
+    if start_dt and end_dt and end_dt <= start_dt:
+        raise HTTPException(status_code=422, detail="end_date must be on or after start_date")
+    return start_dt, end_dt
 
 
 @router.post("/login", response_model=AdminLoginResponse)
@@ -77,8 +115,11 @@ def admin_login(
 def admin_metrics(
     db: Session = Depends(get_db),
     _admin: str = Depends(require_admin),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
 ) -> MetricsResponse:
-    return MetricsResponse(**build_metrics(db))
+    start_dt, end_dt = _date_range_to_utc(start_date, end_date)
+    return MetricsResponse(**build_metrics(db, start_dt=start_dt, end_dt=end_dt))
 
 
 @router.get("/orders", response_model=PaginatedOrders)
@@ -90,9 +131,19 @@ def admin_orders(
     status_filter: Optional[str] = Query(None, alias="status"),
     plate_style: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
 ) -> PaginatedOrders:
+    start_dt, end_dt = _date_range_to_utc(start_date, end_date)
     stmt = select(Order).options(selectinload(Order.items))
     count_stmt = select(func.count(Order.id))
+
+    if start_dt is not None:
+        stmt = stmt.where(Order.created_at >= start_dt)
+        count_stmt = count_stmt.where(Order.created_at >= start_dt)
+    if end_dt is not None:
+        stmt = stmt.where(Order.created_at < end_dt)
+        count_stmt = count_stmt.where(Order.created_at < end_dt)
 
     if status_filter:
         if status_filter not in ORDER_STATUSES:
@@ -134,9 +185,19 @@ def admin_order_items(
     status_filter: Optional[str] = Query(None, alias="status"),
     plate_style: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
 ) -> PaginatedOrderItems:
+    start_dt, end_dt = _date_range_to_utc(start_date, end_date)
     stmt = select(OrderItem)
     count_stmt = select(func.count(OrderItem.id))
+
+    if start_dt is not None:
+        stmt = stmt.where(OrderItem.created_at >= start_dt)
+        count_stmt = count_stmt.where(OrderItem.created_at >= start_dt)
+    if end_dt is not None:
+        stmt = stmt.where(OrderItem.created_at < end_dt)
+        count_stmt = count_stmt.where(OrderItem.created_at < end_dt)
 
     if status_filter:
         if status_filter not in ORDER_STATUSES:

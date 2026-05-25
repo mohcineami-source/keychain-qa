@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, time, timezone
-from typing import Dict
+from typing import Dict, Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -13,13 +13,27 @@ from ..models.order_item import OrderItem
 from ..models.tracking_event import TrackingEvent
 
 
-def _distinct_sessions_for_events(db: Session, event_names) -> int:
+def _apply_range(stmt, column, start_dt: Optional[datetime], end_dt: Optional[datetime]):
+    if start_dt is not None:
+        stmt = stmt.where(column >= start_dt)
+    if end_dt is not None:
+        stmt = stmt.where(column < end_dt)
+    return stmt
+
+
+def _distinct_sessions_for_events(
+    db: Session,
+    event_names,
+    start_dt: Optional[datetime] = None,
+    end_dt: Optional[datetime] = None,
+) -> int:
     """Count distinct sessions that produced any of the given event names."""
     stmt = (
         select(func.count(func.distinct(TrackingEvent.session_id)))
         .where(TrackingEvent.event_name.in_(event_names))
         .where(TrackingEvent.session_id.isnot(None))
     )
+    stmt = _apply_range(stmt, TrackingEvent.created_at, start_dt, end_dt)
     return int(db.execute(stmt).scalar() or 0)
 
 
@@ -29,13 +43,30 @@ def _rate(numerator: int, denominator: int) -> float:
     return round((numerator / denominator) * 100, 2)
 
 
-def build_metrics(db: Session) -> dict:
+def build_metrics(
+    db: Session,
+    start_dt: Optional[datetime] = None,
+    end_dt: Optional[datetime] = None,
+) -> dict:
     # --- Order KPIs ---
-    total_orders = int(db.execute(select(func.count(Order.id))).scalar() or 0)
-    total_revenue = int(db.execute(select(func.coalesce(func.sum(Order.total), 0))).scalar() or 0)
-    keychains_sold = int(db.execute(select(func.count(OrderItem.id))).scalar() or 0)
+    orders_count_stmt = _apply_range(
+        select(func.count(Order.id)), Order.created_at, start_dt, end_dt
+    )
+    orders_revenue_stmt = _apply_range(
+        select(func.coalesce(func.sum(Order.total), 0)),
+        Order.created_at,
+        start_dt,
+        end_dt,
+    )
+    items_count_stmt = _apply_range(
+        select(func.count(OrderItem.id)), OrderItem.created_at, start_dt, end_dt
+    )
 
-    # Today's orders (UTC day boundary)
+    total_orders = int(db.execute(orders_count_stmt).scalar() or 0)
+    total_revenue = int(db.execute(orders_revenue_stmt).scalar() or 0)
+    keychains_sold = int(db.execute(items_count_stmt).scalar() or 0)
+
+    # Today's orders (UTC day boundary) — kept absolute for the "today" KPI.
     today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min, tzinfo=timezone.utc)
     today_orders = int(
         db.execute(
@@ -48,34 +79,50 @@ def build_metrics(db: Session) -> dict:
 
     # --- Orders by status ---
     orders_by_status: Dict[str, int] = {s: 0 for s in ORDER_STATUSES}
-    for status_value, count in db.execute(
-        select(Order.status, func.count(Order.id)).group_by(Order.status)
-    ).all():
+    status_stmt = _apply_range(
+        select(Order.status, func.count(Order.id)).group_by(Order.status),
+        Order.created_at,
+        start_dt,
+        end_dt,
+    )
+    for status_value, count in db.execute(status_stmt).all():
         orders_by_status[status_value] = int(count)
 
     # --- Orders by plate style (counted per item) ---
     orders_by_plate_style: Dict[str, int] = {s: 0 for s in PLATE_STYLES}
-    for style, count in db.execute(
-        select(OrderItem.plate_style, func.count(OrderItem.id)).group_by(OrderItem.plate_style)
-    ).all():
+    style_stmt = _apply_range(
+        select(OrderItem.plate_style, func.count(OrderItem.id)).group_by(
+            OrderItem.plate_style
+        ),
+        OrderItem.created_at,
+        start_dt,
+        end_dt,
+    )
+    for style, count in db.execute(style_stmt).all():
         orders_by_plate_style[style] = int(count)
 
     # --- Payment method split ---
     payment_method_split: Dict[str, int] = {p: 0 for p in PAYMENT_METHODS}
-    for method, count in db.execute(
-        select(Order.payment_method, func.count(Order.id)).group_by(Order.payment_method)
-    ).all():
+    payment_stmt = _apply_range(
+        select(Order.payment_method, func.count(Order.id)).group_by(
+            Order.payment_method
+        ),
+        Order.created_at,
+        start_dt,
+        end_dt,
+    )
+    for method, count in db.execute(payment_stmt).all():
         payment_method_split[method] = int(count)
 
     # --- Funnel counts (distinct sessions per stage) ---
-    sessions = _distinct_sessions_for_events(db, ["PageView", "OfferView"])
-    page_views = _distinct_sessions_for_events(db, ["PageView"])
-    offer_views = _distinct_sessions_for_events(db, ["OfferView"])
-    style_selections = _distinct_sessions_for_events(db, ["SelectPlateStyle"])
-    add_another = _distinct_sessions_for_events(db, ["AddAnotherPlate"])
-    checkout_starts = _distinct_sessions_for_events(db, ["InitiateCheckout"])
-    submitted_orders = _distinct_sessions_for_events(db, ["SubmitOrder"])
-    purchases = _distinct_sessions_for_events(db, ["Purchase"])
+    sessions = _distinct_sessions_for_events(db, ["PageView", "OfferView"], start_dt, end_dt)
+    page_views = _distinct_sessions_for_events(db, ["PageView"], start_dt, end_dt)
+    offer_views = _distinct_sessions_for_events(db, ["OfferView"], start_dt, end_dt)
+    style_selections = _distinct_sessions_for_events(db, ["SelectPlateStyle"], start_dt, end_dt)
+    add_another = _distinct_sessions_for_events(db, ["AddAnotherPlate"], start_dt, end_dt)
+    checkout_starts = _distinct_sessions_for_events(db, ["InitiateCheckout"], start_dt, end_dt)
+    submitted_orders = _distinct_sessions_for_events(db, ["SubmitOrder"], start_dt, end_dt)
+    purchases = _distinct_sessions_for_events(db, ["Purchase"], start_dt, end_dt)
 
     # Completed orders = orders that reached delivered status
     completed_orders = orders_by_status.get("delivered", 0)

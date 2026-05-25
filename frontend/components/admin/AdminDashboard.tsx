@@ -18,7 +18,9 @@ import { MetricsCards } from "./MetricsCards";
 import { FunnelMetrics } from "./FunnelMetrics";
 import { OrdersTable } from "./OrdersTable";
 import { ProductionItemsTable } from "./ProductionItemsTable";
+import { DateRangeFilter } from "./DateRangeFilter";
 import { plateStyles } from "@/data/plateStyles";
+import type { DateRange, RangePresetId } from "@/lib/dateRange";
 
 type Tab = "orders" | "production";
 
@@ -38,16 +40,18 @@ export function AdminDashboard({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rangePreset, setRangePreset] = useState<RangePresetId>("all");
+  const [dateRange, setDateRange] = useState<DateRange>({});
 
   const loadMetrics = useCallback(async () => {
     try {
-      const m = await getAdminMetrics(token);
+      const m = await getAdminMetrics(token, dateRange);
       setMetrics(m && typeof m === "object" ? m : null);
     } catch (err) {
       console.error("[admin] loadMetrics failed", err);
       /* metrics are non-blocking */
     }
-  }, [token]);
+  }, [token, dateRange]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -57,13 +61,17 @@ export function AdminDashboard({
         const res = await getAdminOrders(token, {
           status: statusFilter || undefined,
           search: search || undefined,
+          start_date: dateRange.start_date,
+          end_date: dateRange.end_date,
         });
-        setOrders(Array.isArray(res?.orders) ? res.orders : []);
+        setOrders(Array.isArray(res?.items) ? res.items : []);
       } else {
         const res = await getAdminOrderItems(token, {
           status: statusFilter || undefined,
           plate_style: styleFilter || undefined,
           search: search || undefined,
+          start_date: dateRange.start_date,
+          end_date: dateRange.end_date,
         });
         setItems(Array.isArray(res?.items) ? res.items : []);
       }
@@ -75,7 +83,7 @@ export function AdminDashboard({
     } finally {
       setLoading(false);
     }
-  }, [token, tab, statusFilter, styleFilter, search]);
+  }, [token, tab, statusFilter, styleFilter, search, dateRange]);
 
   useEffect(() => {
     void loadMetrics();
@@ -107,6 +115,15 @@ export function AdminDashboard({
           Logout
         </Button>
       </div>
+
+      <DateRangeFilter
+        preset={rangePreset}
+        range={dateRange}
+        onChange={(preset, range) => {
+          setRangePreset(preset);
+          setDateRange(range);
+        }}
+      />
 
       {metrics ? (
         <>
