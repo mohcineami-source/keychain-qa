@@ -12,7 +12,17 @@ export default function AdminPage() {
 
   useEffect(() => {
     try {
-      setToken(window.localStorage.getItem(TOKEN_KEY));
+      const stored = window.localStorage.getItem(TOKEN_KEY);
+      if (!stored || stored === "undefined" || stored === "null") {
+        setToken(null);
+        try {
+          window.localStorage.removeItem(TOKEN_KEY);
+        } catch {
+          /* ignore */
+        }
+      } else {
+        setToken(stored);
+      }
     } catch {
       /* ignore */
     }

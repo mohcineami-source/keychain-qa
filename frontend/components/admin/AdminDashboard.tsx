@@ -41,8 +41,10 @@ export function AdminDashboard({
 
   const loadMetrics = useCallback(async () => {
     try {
-      setMetrics(await getAdminMetrics(token));
-    } catch {
+      const m = await getAdminMetrics(token);
+      setMetrics(m && typeof m === "object" ? m : null);
+    } catch (err) {
+      console.error("[admin] loadMetrics failed", err);
       /* metrics are non-blocking */
     }
   }, [token]);
@@ -56,16 +58,19 @@ export function AdminDashboard({
           status: statusFilter || undefined,
           search: search || undefined,
         });
-        setOrders(res.orders);
+        setOrders(Array.isArray(res?.orders) ? res.orders : []);
       } else {
         const res = await getAdminOrderItems(token, {
           status: statusFilter || undefined,
           plate_style: styleFilter || undefined,
           search: search || undefined,
         });
-        setItems(res.items);
+        setItems(Array.isArray(res?.items) ? res.items : []);
       }
-    } catch {
+    } catch (err) {
+      console.error("[admin] loadData failed", err);
+      setOrders([]);
+      setItems([]);
       setError("Failed to load data. Check the API connection and token.");
     } finally {
       setLoading(false);

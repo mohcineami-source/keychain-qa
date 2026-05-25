@@ -4,7 +4,8 @@ import type { AdminOrder } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 
 export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
-  if (orders.length === 0) {
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  if (safeOrders.length === 0) {
     return (
       <div className="rounded-lg border border-warmgray bg-white p-8 text-center text-sm text-muted">
         No orders found.
@@ -28,7 +29,7 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
           </tr>
         </thead>
         <tbody>
-          {orders.map((o) => (
+          {safeOrders.map((o) => (
             <tr
               key={o.id}
               className="border-b border-warmgray/60 last:border-0 hover:bg-soft/40"

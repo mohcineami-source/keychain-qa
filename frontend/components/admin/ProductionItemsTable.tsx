@@ -19,7 +19,8 @@ export function ProductionItemsTable({
   items,
   onStatusChange,
 }: ProductionItemsTableProps) {
-  if (items.length === 0) {
+  const safeItems = Array.isArray(items) ? items : [];
+  if (safeItems.length === 0) {
     return (
       <div className="rounded-lg border border-warmgray bg-white p-8 text-center text-sm text-muted">
         No production items found.
@@ -45,7 +46,7 @@ export function ProductionItemsTable({
           </tr>
         </thead>
         <tbody>
-          {items.map((it) => (
+          {safeItems.map((it) => (
             <tr
               key={it.id}
               className="border-b border-warmgray/60 last:border-0 hover:bg-soft/40"
