@@ -14,6 +14,16 @@ import { config } from "@/lib/config";
  * - Server-side Conversions API is handled by the backend; tokens are never exposed here.
  */
 export function SnapchatPixel() {
+  if (typeof window !== "undefined") {
+    // Temporary debug — pixel ids are public, no secrets logged.
+    // eslint-disable-next-line no-console
+    console.log("SNAP_DEBUG", {
+      enabled: config.snapchat.enabled,
+      pixelIds: config.snapchat.pixelIds,
+      pixelIdsLength: config.snapchat.pixelIds.length,
+    });
+  }
+
   if (!config.snapchat.enabled) return null;
   if (!config.snapchat.pixelIds.length) return null;
 
