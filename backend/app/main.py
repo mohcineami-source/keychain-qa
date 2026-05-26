@@ -12,41 +12,63 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import settings
 from .logging_config import configure_logging, get_logger
-from .middleware import RateLimitMiddleware, RequestLoggingMiddleware
+from .middleware import (
+    OriginCheckMiddleware,
+    RateLimitMiddleware,
+    RequestLoggingMiddleware,
+    SecurityHeadersMiddleware,
+)
 from .routers import admin, debug, health, orders, tracking
 
 configure_logging()
 logger = get_logger("keychain.main")
 
+# Fail fast in production if any insecure default is still configured.
+settings.validate_for_runtime()
+
+# Docs are hidden in production unless explicitly enabled.
+_docs_enabled = (not settings.is_production) or settings.EXPOSE_API_DOCS
+
 app = FastAPI(
     title="keychain.qa API",
     description="Backend API for the keychain.qa Qatar car plate keychain funnel.",
     version="1.0.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    docs_url="/api/docs" if _docs_enabled else None,
+    redoc_url="/api/redoc" if _docs_enabled else None,
+    openapi_url="/api/openapi.json" if _docs_enabled else None,
 )
 
-# CORS — frontend only.
+# CORS — frontend only. Note: ASGI middleware runs in reverse order, so the
+# middleware added LAST runs FIRST (outermost). We want this stack on the wire:
+#   CORS -> RequestLogging -> SecurityHeaders -> OriginCheck -> RateLimit -> app
+# so we add them in the opposite order below.
+_cors_origins = settings.cors_origins_list or [settings.FRONTEND_URL]
+
+app.add_middleware(RateLimitMiddleware, limited_paths=("/api/orders",))
+app.add_middleware(OriginCheckMiddleware, allowed_origins=_cors_origins)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list or ["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
-    allow_headers=["*"],
+    # Narrow from "*" to the headers our SPA actually sends. With credentials
+    # enabled, the browser refuses "*" anyway, so an explicit list is required.
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    max_age=600,
 )
-
-# Custom middleware (added after CORS so CORS runs outermost).
-app.add_middleware(RateLimitMiddleware, limited_paths=("/api/orders",))
-app.add_middleware(RequestLoggingMiddleware)
 
 # Routers
 app.include_router(health.router, tags=["health"])
 app.include_router(orders.router, tags=["orders"])
 app.include_router(tracking.router, tags=["tracking"])
 app.include_router(admin.router, tags=["admin"])
-# TODO: remove once Google Sheets sync is confirmed working in production.
-app.include_router(debug.router)
+# Diagnostic endpoints are admin-gated AND only registered when explicitly
+# enabled via ENABLE_DEBUG_ROUTES. Off by default everywhere.
+if settings.ENABLE_DEBUG_ROUTES:
+    app.include_router(debug.router)
+    logger.warning("debug_routes_enabled — disable in production once verified")
 
 
 @app.exception_handler(RequestValidationError)
@@ -68,4 +90,8 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.get("/")
 def root() -> dict:
-    return {"service": "keychain-api", "status": "running", "docs": "/api/docs"}
+    return {
+        "service": "keychain-api",
+        "status": "running",
+        "docs": "/api/docs" if _docs_enabled else None,
+    }

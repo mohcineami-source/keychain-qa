@@ -37,10 +37,17 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit): Promise<T> {
+interface RequestOptions extends RequestInit {
+  /** Send the admin session cookie. Required for /api/admin/* endpoints. */
+  withCredentials?: boolean;
+}
+
+async function request<T>(path: string, init: RequestOptions): Promise<T> {
+  const { withCredentials, headers, ...rest } = init;
   const res = await fetch(`${config.apiUrl}${path}`, {
-    headers: { "Content-Type": "application/json", ...(init.headers || {}) },
-    ...init,
+    headers: { "Content-Type": "application/json", ...(headers || {}) },
+    credentials: withCredentials ? "include" : "same-origin",
+    ...rest,
   });
 
   if (!res.ok) {
@@ -69,7 +76,7 @@ export function createOrder(
 /* ---------- Admin API ---------- */
 
 export interface AdminLoginResponse {
-  token: string;
+  success: boolean;
 }
 
 export function adminLogin(
@@ -78,12 +85,23 @@ export function adminLogin(
 ): Promise<AdminLoginResponse> {
   return request<AdminLoginResponse>("/api/admin/login", {
     method: "POST",
+    withCredentials: true,
     body: JSON.stringify({ username, password }),
   });
 }
 
-function authHeaders(token: string): HeadersInit {
-  return { Authorization: `Bearer ${token}` };
+export function adminLogout(): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>("/api/admin/logout", {
+    method: "POST",
+    withCredentials: true,
+  });
+}
+
+export function adminMe(): Promise<{ success: boolean; username: string }> {
+  return request<{ success: boolean; username: string }>("/api/admin/me", {
+    method: "GET",
+    withCredentials: true,
+  });
 }
 
 export interface AdminMetrics {
@@ -122,7 +140,6 @@ function appendDateRange(qs: URLSearchParams, range?: DateRangeParams): void {
 }
 
 export function getAdminMetrics(
-  token: string,
   range?: DateRangeParams
 ): Promise<AdminMetrics> {
   const qs = new URLSearchParams();
@@ -130,7 +147,7 @@ export function getAdminMetrics(
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return request<AdminMetrics>(`/api/admin/metrics${suffix}`, {
     method: "GET",
-    headers: authHeaders(token),
+    withCredentials: true,
   });
 }
 
@@ -156,7 +173,6 @@ export interface AdminOrdersResponse {
 }
 
 export function getAdminOrders(
-  token: string,
   params: {
     status?: string;
     search?: string;
@@ -173,7 +189,7 @@ export function getAdminOrders(
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return request<AdminOrdersResponse>(`/api/admin/orders${suffix}`, {
     method: "GET",
-    headers: authHeaders(token),
+    withCredentials: true,
   });
 }
 
@@ -202,7 +218,6 @@ export interface AdminOrderItemsResponse {
 }
 
 export function getAdminOrderItems(
-  token: string,
   params: {
     status?: string;
     plate_style?: string;
@@ -221,18 +236,17 @@ export function getAdminOrderItems(
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return request<AdminOrderItemsResponse>(`/api/admin/order-items${suffix}`, {
     method: "GET",
-    headers: authHeaders(token),
+    withCredentials: true,
   });
 }
 
 export function updateOrderItemStatus(
-  token: string,
   itemId: string,
   status: string
 ): Promise<AdminOrderItem> {
   return request<AdminOrderItem>(`/api/admin/order-items/${itemId}/status`, {
     method: "PATCH",
-    headers: authHeaders(token),
+    withCredentials: true,
     body: JSON.stringify({ status }),
   });
 }

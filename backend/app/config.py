@@ -28,7 +28,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change_me"
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "change_me_strong_password"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 12  # 12 hours
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 4  # 4 hours
+    ADMIN_COOKIE_NAME: str = "kcq_admin_session"
+    # Auth/CSRF tuning.
+    ADMIN_LOGIN_MAX_FAILURES: int = 8
+    ADMIN_LOGIN_FAILURE_WINDOW_MINUTES: int = 15
+    ADMIN_LOGIN_LOCKOUT_MINUTES: int = 30
+    # Debug router (Sheets diagnostic) — admin-gated and off by default.
+    ENABLE_DEBUG_ROUTES: bool = False
+    # Expose /api/docs and /api/redoc. Default off in production.
+    EXPOSE_API_DOCS: bool = False
 
     # WhatsApp
     WHATSAPP_NUMBER: str = "97433423421"
@@ -79,6 +88,27 @@ class Settings(BaseSettings):
         if not self.CORS_ORIGINS:
             return []
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        return (self.ENVIRONMENT or "").lower() == "production"
+
+    def validate_for_runtime(self) -> None:
+        """Fail-fast checks for production: refuse insecure defaults."""
+        if not self.is_production:
+            return
+        insecure = []
+        if self.SECRET_KEY in ("", "change_me", "change_me_strong_password"):
+            insecure.append("SECRET_KEY")
+        if self.ADMIN_PASSWORD in ("", "change_me_strong_password", "admin", "password"):
+            insecure.append("ADMIN_PASSWORD")
+        if len(self.SECRET_KEY or "") < 32:
+            insecure.append("SECRET_KEY (must be >= 32 chars)")
+        if insecure:
+            raise RuntimeError(
+                "Refusing to start in production with insecure secrets: "
+                + ", ".join(insecure)
+            )
 
 
 @lru_cache

@@ -11,7 +11,7 @@ try:
 except Exception:  # noqa: BLE001
     _QATAR_TZ = timezone(timedelta(hours=3))  # Qatar is UTC+3, no DST.
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -19,7 +19,7 @@ from ..config import settings
 from ..constants import ORDER_STATUSES, PLATE_STYLES
 from ..database import get_db
 from ..logging_config import get_logger
-from ..middleware import get_client_ip
+from ..middleware import admin_login_guard, get_client_ip
 from ..models.admin_session import AdminSession
 from ..models.order import Order
 from ..models.order_item import OrderItem
@@ -36,7 +36,13 @@ from ..schemas.orders import (
     PaginatedOrderItems,
     PaginatedOrders,
 )
-from ..security import create_access_token, require_admin, verify_admin_credentials
+from ..security import (
+    clear_admin_cookie,
+    create_access_token,
+    require_admin,
+    set_admin_cookie,
+    verify_admin_credentials,
+)
 from ..services import google_sheets
 from ..services.metrics import build_metrics
 
@@ -80,16 +86,46 @@ def _date_range_to_utc(
 def admin_login(
     payload: AdminLoginRequest,
     request: Request,
+    response: Response,
     db: Session = Depends(get_db),
 ) -> AdminLoginResponse:
+    client_ip = get_client_ip(request)
+
+    # Brute-force lockout — reject before doing the credential compare so we
+    # don't leak timing information about whether the username is valid.
+    locked, retry_after = admin_login_guard.status(client_ip)
+    if locked:
+        logger.warning(
+            "admin_login_locked",
+            extra={"client_ip": client_ip, "retry_after": retry_after},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed attempts. Try again later.",
+            headers={"Retry-After": str(max(1, retry_after))},
+        )
+
     if not verify_admin_credentials(payload.username, payload.password):
-        logger.warning("admin_login_failed", extra={"client_ip": get_client_ip(request)})
+        now_locked, lockout_retry = admin_login_guard.record_failure(client_ip)
+        logger.warning(
+            "admin_login_failed",
+            extra={"client_ip": client_ip, "locked_now": now_locked},
+        )
+        if now_locked:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed attempts. Try again later.",
+                headers={"Retry-After": str(max(1, lockout_retry))},
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
 
+    admin_login_guard.record_success(client_ip)
     token = create_access_token(subject=payload.username)
+    set_admin_cookie(response, token)
+
     expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
@@ -98,7 +134,7 @@ def admin_login(
         db.add(
             AdminSession(
                 username=payload.username,
-                ip_address=get_client_ip(request),
+                ip_address=client_ip,
                 user_agent=(request.headers.get("user-agent") or "")[:512],
                 expires_at=expires_at,
             )
@@ -109,6 +145,19 @@ def admin_login(
         logger.exception("admin_session_audit_failed")
 
     return AdminLoginResponse(success=True, access_token=token, token_type="bearer")
+
+
+@router.post("/logout")
+def admin_logout(response: Response) -> dict:
+    clear_admin_cookie(response)
+    return {"success": True}
+
+
+@router.get("/me")
+def admin_me(_admin: str = Depends(require_admin)) -> dict:
+    """Lightweight session check used by the SPA to decide whether to show
+    the login screen vs the dashboard."""
+    return {"success": True, "username": _admin}
 
 
 @router.get("/metrics", response_model=MetricsResponse)
@@ -130,7 +179,7 @@ def admin_orders(
     page_size: int = Query(25, ge=1, le=200),
     status_filter: Optional[str] = Query(None, alias="status"),
     plate_style: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    search: Optional[str] = Query(None, max_length=128),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
 ) -> PaginatedOrders:
@@ -184,7 +233,7 @@ def admin_order_items(
     page_size: int = Query(50, ge=1, le=500),
     status_filter: Optional[str] = Query(None, alias="status"),
     plate_style: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    search: Optional[str] = Query(None, max_length=128),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
 ) -> PaginatedOrderItems:

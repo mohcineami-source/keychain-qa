@@ -16,7 +16,12 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
-RUN chmod +x start.sh
+RUN chmod +x start.sh \
+    && groupadd --system --gid 1001 keychain \
+    && useradd --system --uid 1001 --gid keychain --no-create-home --shell /usr/sbin/nologin keychain \
+    && chown -R keychain:keychain /app
+
+USER keychain
 
 EXPOSE 8000
 

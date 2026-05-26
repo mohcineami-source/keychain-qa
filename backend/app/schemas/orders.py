@@ -69,11 +69,11 @@ class OrderItemIn(BaseModel):
 class OrderCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    customer_name: str = Field(..., min_length=1, max_length=255)
-    phone: str = Field(..., min_length=1, max_length=64)
-    address: str = Field(..., min_length=1)
+    customer_name: str = Field(..., min_length=1, max_length=120)
+    phone: str = Field(..., min_length=1, max_length=32)
+    address: str = Field(..., min_length=1, max_length=500)
     payment_method: str
-    items: List[OrderItemIn] = Field(..., min_length=1)
+    items: List[OrderItemIn] = Field(..., min_length=1, max_length=20)
     tracking: Optional[TrackingContext] = None
 
     @field_validator("customer_name", "phone", "address")
@@ -82,6 +82,11 @@ class OrderCreate(BaseModel):
         v = (v or "").strip()
         if not v:
             raise ValueError("field is required")
+        # Reject ASCII control characters except newline/tab in the address
+        # (which a customer might legitimately include between street lines).
+        bad = [c for c in v if ord(c) < 0x20 and c not in ("\n", "\r", "\t")]
+        if bad:
+            raise ValueError("field contains invalid control characters")
         return v
 
     @field_validator("payment_method")

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function AdminLogin({
   onSuccess,
 }: {
-  onSuccess: (token: string) => void;
+  onSuccess: () => void;
 }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -22,10 +22,15 @@ export function AdminLogin({
     setError(null);
     setLoading(true);
     try {
-      const res = await adminLogin(username.trim(), password);
-      onSuccess(res.token);
-    } catch {
-      setError("Invalid username or password.");
+      await adminLogin(username.trim(), password);
+      onSuccess();
+    } catch (err) {
+      const status = (err as { status?: number } | null)?.status;
+      if (status === 429) {
+        setError("Too many failed attempts. Try again in a few minutes.");
+      } else {
+        setError("Invalid username or password.");
+      }
     } finally {
       setLoading(false);
     }

@@ -9,16 +9,23 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sqlalchemy import desc, select
 
 from ..config import settings
 from ..database import get_sessionmaker
 from ..logging_config import get_logger
 from ..models.order_item import OrderItem
+from ..security import require_admin
 from ..services import google_sheets
 
-router = APIRouter(prefix="/api/debug", tags=["debug"])
+# Admin-only diagnostic router. Registration is further gated in main.py by
+# ENABLE_DEBUG_ROUTES so the endpoints don't even exist unless explicitly opted in.
+router = APIRouter(
+    prefix="/api/debug",
+    tags=["debug"],
+    dependencies=[Depends(require_admin)],
+)
 logger = get_logger("keychain.debug")
 
 

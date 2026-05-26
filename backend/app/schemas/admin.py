@@ -3,14 +3,14 @@ from __future__ import annotations
 
 from typing import Dict
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..constants import ORDER_STATUSES
 
 
 class AdminLoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=128)
+    password: str = Field(..., min_length=1, max_length=256)
 
 
 class AdminLoginResponse(BaseModel):

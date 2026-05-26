@@ -1,61 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { adminMe } from "@/lib/api";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
-const TOKEN_KEY = "kcq_admin_token";
+type AuthState = "checking" | "authed" | "guest";
+
+const LEGACY_TOKEN_KEY = "kcq_admin_token";
 
 export default function AdminPage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
+  const [auth, setAuth] = useState<AuthState>("checking");
 
+  // Best-effort sweep of the legacy localStorage token; the session is now
+  // httpOnly-cookie-based and the localStorage value is no longer trusted.
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(TOKEN_KEY);
-      if (!stored || stored === "undefined" || stored === "null") {
-        setToken(null);
-        try {
-          window.localStorage.removeItem(TOKEN_KEY);
-        } catch {
-          /* ignore */
-        }
-      } else {
-        setToken(stored);
-      }
+      window.localStorage.removeItem(LEGACY_TOKEN_KEY);
     } catch {
       /* ignore */
     }
-    setReady(true);
   }, []);
 
-  const handleSuccess = (next: string) => {
+  const checkSession = async () => {
     try {
-      window.localStorage.setItem(TOKEN_KEY, next);
+      await adminMe();
+      setAuth("authed");
     } catch {
-      /* ignore */
+      setAuth("guest");
     }
-    setToken(next);
   };
 
-  const handleLogout = () => {
-    try {
-      window.localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      /* ignore */
-    }
-    setToken(null);
-  };
+  useEffect(() => {
+    void checkSession();
+  }, []);
 
-  if (!ready) {
+  if (auth === "checking") {
     return (
       <div className="container-page py-16 text-center text-muted">Loading...</div>
     );
   }
 
-  if (!token) {
-    return <AdminLogin onSuccess={handleSuccess} />;
+  if (auth === "guest") {
+    return <AdminLogin onSuccess={() => setAuth("authed")} />;
   }
 
-  return <AdminDashboard token={token} onLogout={handleLogout} />;
+  return <AdminDashboard onLogout={() => setAuth("guest")} />;
 }

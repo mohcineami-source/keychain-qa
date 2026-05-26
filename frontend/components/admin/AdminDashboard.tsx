@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  adminLogout,
   getAdminMetrics,
   getAdminOrders,
   getAdminOrderItems,
@@ -25,10 +26,8 @@ import type { DateRange, RangePresetId } from "@/lib/dateRange";
 type Tab = "orders" | "production";
 
 export function AdminDashboard({
-  token,
   onLogout,
 }: {
-  token: string;
   onLogout: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("orders");
@@ -45,20 +44,20 @@ export function AdminDashboard({
 
   const loadMetrics = useCallback(async () => {
     try {
-      const m = await getAdminMetrics(token, dateRange);
+      const m = await getAdminMetrics(dateRange);
       setMetrics(m && typeof m === "object" ? m : null);
     } catch (err) {
       console.error("[admin] loadMetrics failed", err);
       /* metrics are non-blocking */
     }
-  }, [token, dateRange]);
+  }, [dateRange]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       if (tab === "orders") {
-        const res = await getAdminOrders(token, {
+        const res = await getAdminOrders({
           status: statusFilter || undefined,
           search: search || undefined,
           start_date: dateRange.start_date,
@@ -66,7 +65,7 @@ export function AdminDashboard({
         });
         setOrders(Array.isArray(res?.items) ? res.items : []);
       } else {
-        const res = await getAdminOrderItems(token, {
+        const res = await getAdminOrderItems({
           status: statusFilter || undefined,
           plate_style: styleFilter || undefined,
           search: search || undefined,
@@ -79,11 +78,16 @@ export function AdminDashboard({
       console.error("[admin] loadData failed", err);
       setOrders([]);
       setItems([]);
-      setError("Failed to load data. Check the API connection and token.");
+      const status = (err as { status?: number } | null)?.status;
+      if (status === 401) {
+        onLogout();
+        return;
+      }
+      setError("Failed to load data. Check the API connection.");
     } finally {
       setLoading(false);
     }
-  }, [token, tab, statusFilter, styleFilter, search, dateRange]);
+  }, [tab, statusFilter, styleFilter, search, dateRange, onLogout]);
 
   useEffect(() => {
     void loadMetrics();
@@ -95,7 +99,7 @@ export function AdminDashboard({
 
   const handleStatusChange = async (itemId: string, status: string) => {
     try {
-      const updated = await updateOrderItemStatus(token, itemId, status);
+      const updated = await updateOrderItemStatus(itemId, status);
       setItems((prev) =>
         prev.map((it) => (it.id === itemId ? { ...it, ...updated } : it))
       );
@@ -105,13 +109,22 @@ export function AdminDashboard({
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await adminLogout();
+    } catch {
+      /* ignore — clear local state regardless */
+    }
+    onLogout();
+  };
+
   return (
     <div dir="ltr" className="container-wide space-y-6 py-8 text-left">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold text-charcoal">
           keychain.qa — Admin
         </h1>
-        <Button variant="outline" size="sm" onClick={onLogout}>
+        <Button variant="outline" size="sm" onClick={handleLogout}>
           Logout
         </Button>
       </div>
