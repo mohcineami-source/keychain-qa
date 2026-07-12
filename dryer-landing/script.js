@@ -1,5 +1,5 @@
 /* =============================================================
-   نَدى (Nada) — interactions
+   نَدى (Nada) - interactions
    ============================================================= */
 (function () {
   "use strict";
@@ -14,19 +14,19 @@
   /* ---------- FAQ (data-driven) ---------- */
   var FAQ = [
     { q: "تشتغل بأي دولة أسافر لها؟",
-      a: "نَدى تشتغل على الكهرباء العادية 220-240 فولت — نفس كهرباء قطر ودول الخليج، وتنفعك بتركيا وأوروبا ومصر وأغلب آسيا وإفريقيا (تحتاج بس محوّل شكل الفيشة بحسب الدولة). لكن بكل صدق: الدول اللي كهرباؤها 110 فولت مثل أمريكا وكندا واليابان تحتاج محوّل جهد (Voltage Converter) — محوّل شكل الفيشة العادي ما يكفي فيها. ما نقول لك تشتغل بأي دولة، بس تشتغل بأغلبها اللي كهرباؤها زي كهربانا." },
+      a: "نَدى تشتغل على الكهرباء العادية 220-240 فولت، نفس كهرباء قطر ودول الخليج، وتنفعك بتركيا وأوروبا ومصر وأغلب آسيا وإفريقيا (تحتاج بس محوّل شكل الفيشة بحسب الدولة). لكن بكل صدق: الدول اللي كهرباؤها 110 فولت مثل أمريكا وكندا واليابان تحتاج محوّل جهد (Voltage Converter)، محوّل شكل الفيشة العادي ما يكفي فيها. ما نقول لك تشتغل بأي دولة، بس تشتغل بأغلبها اللي كهرباؤها زي كهربانا." },
     { q: "تنفعني بالعمرة والحج أنشّف ملابسي بالفندق؟",
       a: "إي نعم، هذا من أنسب استخداماتها. تعلّقها على رف أو مغلاق خزانة بغرفتك في مكة أو المدينة، تحط ملابس الإحرام أو ملابسك المغسولة وتقفل السحّاب، وتنشف بهواء دافئ لطيف بخصوصية تامة وبلا ما تعتمد على مغسلة الفندق. القطع الخفيفة والقطنية تنشف مريح، والقطع الأثقل تحتاج وقت أطول شوي." },
     { q: "أقدر أستخدمها بغرفة الفندق أو السكن الجامعي؟",
-      a: "أكيد. ما تحتاج تركيب ولا مكان — بس فيشة كهرباء ورف أو مغلاق تعلّقها عليه. مثالية للفندق والسكن الجامعي والغرف الصغيرة، وتنشّف ملابسك بهدوء وخصوصية بلا مغسلة مشتركة ولا نشر على الكراسي." },
+      a: "أكيد. ما تحتاج تركيب ولا مكان، بس فيشة كهرباء ورف أو مغلاق تعلّقها عليه. مثالية للفندق والسكن الجامعي والغرف الصغيرة، وتنشّف ملابسك بهدوء وخصوصية بلا مغسلة مشتركة ولا نشر على الكراسي." },
     { q: "تدخل شنطة سفري؟ كم مقاسها وهي مطوية؟",
-      a: "تنطوي مسطّحة لمقاس صغير حوالي 35×26×15 سم ووزنها 1.55 كجم بس — تدخل شنطة السفر الكبيرة أو حتى شنطة الكابينة بسهولة جنب ملابسك، وترجع تفردها بثواني أول ما توصل." },
+      a: "تنطوي مسطّحة لمقاس صغير حوالي 35×26×15 سم ووزنها 1.55 كجم بس، تدخل شنطة السفر الكبيرة أو حتى شنطة الكابينة بسهولة جنب ملابسك، وترجع تفردها بثواني أول ما توصل." },
     { q: "كيف تشتغل؟ هل هي مثل الدراير الكبير؟",
       a: "لا، مو دراير بأسطوانة دوّارة. حقيبة تجفيف تعلّقها على أي رف أو مغلاق، تحط ملابسك جواها وتقفل السحّاب، وهواء دافئ لطيف يعبّي الحقيبة ويجففها تدريجياً بحرارة ثابتة. تنشيف لطيف يحافظ على القماش، مو حرارة عالية ولا تدوير." },
     { q: "كيف يتم الدفع ومتى؟",
-      a: "الدفع عند الاستلام. تفحص المنتج بيدك أول ما يوصلك، وإذا ما عجبك لا تستلمه ولا تدفع شي — وإذا رضيت تدفع كاش للمندوب. بدون أي دفع مقدّم أو بطاقة." },
+      a: "الدفع عند الاستلام. تفحص المنتج بيدك أول ما يوصلك، وإذا ما عجبك لا تستلمه ولا تدفع شي، وإذا رضيت تدفع كاش للمندوب. بدون أي دفع مقدّم أو بطاقة." },
     { q: "لو ما أسافر واجد، تنفعني بالبيت؟",
-      a: "إي، تخدمك بالبيت زين — بأيام الرطوبة والعجاج، أو بالشقق اللي بلا شرفة، أو لما تبي تجفف قطعة وحدة بسرعة مثل ثوب أو ملابس صلاة أو ملابس بيبي. بس أكثر ما تتميز فيه إنها تروح معاك بالسفر." }
+      a: "إي، تخدمك بالبيت زين، بأيام الرطوبة والعجاج، أو بالشقق اللي بلا شرفة، أو لما تبي تجفف قطعة وحدة بسرعة مثل ثوب أو ملابس صلاة أو ملابس بيبي. بس أكثر ما تتميز فيه إنها تروح معاك بالسفر." }
   ];
 
   function buildFaq() {
@@ -129,7 +129,7 @@
     });
   }
   function openWhatsApp(text) {
-    if (!WA_NUMBER || WA_NUMBER.length < 8) { toast("رقم واتساب غير مهيأ — راجع الإعدادات"); return false; }
+    if (!WA_NUMBER || WA_NUMBER.length < 8) { toast("رقم واتساب غير مهيأ، راجع الإعدادات"); return false; }
     var url = "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(text);
     var w = window.open(url, "_blank");
     if (!w) { window.location.href = url; }        // popup blocked → same-tab fallback
@@ -138,7 +138,7 @@
   }
   function toast(msg) {
     var t = $("#toast"), m = $("#toastMsg");
-    if (m) m.textContent = msg || "تم — يفتح واتساب…";
+    if (m) m.textContent = msg || "تم، يفتح واتساب…";
     if (!t) return;
     t.classList.add("show");
     setTimeout(function () { t.classList.remove("show"); }, 2600);
@@ -189,7 +189,7 @@
         headers: { "Content-Type": "application/json" },
         body: payload,
         keepalive: true // survives the tab-switch / same-tab fallback to wa.me
-      }).catch(function () { /* swallow — sheet sync must never surface to the customer */ });
+      }).catch(function () { /* swallow - sheet sync must never surface to the customer */ });
     } catch (e) { /* swallow */ }
   }
 
@@ -219,7 +219,7 @@
       trackOrder(total);
       var opened = openWhatsApp(buildWaMessage(data));   // synchronous → keeps user gesture
       syncToSheet(data, total);
-      if (opened) toast("تم — يفتح واتساب…");
+      if (opened) toast("تم، يفتح واتساب…");
     });
   }
 
@@ -273,7 +273,7 @@
   function init() {
     // decorative icons out of the a11y tree
     $$("svg.ic").forEach(function (s) { s.setAttribute("aria-hidden", "true"); s.setAttribute("focusable", "false"); });
-    // non-submit buttons default to type=submit — pin them to button
+    // non-submit buttons default to type=submit - pin them to button
     $$("[data-scroll], #waHelp, #waFloat").forEach(function (b) {
       if (b.tagName === "BUTTON" && !b.getAttribute("type")) b.setAttribute("type", "button");
     });
@@ -288,7 +288,7 @@
     var snapIds = (CFG.SNAP_PIXEL_IDS && CFG.SNAP_PIXEL_IDS.length) ? CFG.SNAP_PIXEL_IDS : (CFG.SNAP_PIXEL_ID ? [CFG.SNAP_PIXEL_ID] : []);
     loadSnapPixels(snapIds);
     if (!WA_NUMBER || WA_NUMBER.length < 8) {
-      console.warn("[نَدى] WHATSAPP_NUMBER not set correctly in config.js — order/help buttons won't reach WhatsApp.");
+      console.warn("[نَدى] WHATSAPP_NUMBER not set correctly in config.js - order/help buttons won't reach WhatsApp.");
     }
   }
   // Run whether the script loads before OR after DOMContentLoaded (robust for inlined/deferred use).

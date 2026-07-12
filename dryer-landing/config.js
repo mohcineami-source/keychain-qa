@@ -1,22 +1,22 @@
 /* =============================================================
-   نَدى (Nada) — إعدادات الصفحة
+   نَدى (Nada) - إعدادات الصفحة
    The 2 things you MUST set before running ads:
-   1) WHATSAPP_NUMBER  — the WhatsApp number that receives orders
-   2) PRICE_PER_UNIT   — price in QAR (shipping included)
+   1) WHATSAPP_NUMBER  - the WhatsApp number that receives orders
+   2) PRICE_PER_UNIT   - price in QAR (shipping included)
    ============================================================= */
 
 window.NADA_CONFIG = {
-  /* WhatsApp number that receives orders — same as the keychain.qa project.
+  /* WhatsApp number that receives orders - same as the keychain.qa project.
      International format, digits only, no "+" and no spaces. */
   WHATSAPP_NUMBER: "97433423421",
 
-  /* Price per unit in QAR — shipping included. Displayed everywhere + used for the total. */
+  /* Price per unit in QAR - shipping included. Displayed everywhere + used for the total. */
   PRICE_PER_UNIT: 175,
 
   /* Max quantity allowed in the stepper. */
   MAX_QTY: 5,
 
-  /* Snapchat Pixel(s) — same pixels as the keychain.qa project. Loads the pixel, fires
+  /* Snapchat Pixel(s) - same pixels as the keychain.qa project. Loads the pixel, fires
      PAGE_VIEW, and fires a START_CHECKOUT event on order submit (fanned out to every id
      below). All wrapped so a blocked/failed pixel can NEVER break the page or WhatsApp.
      Empty the array to disable. */
@@ -37,6 +37,6 @@ window.NADA_CONFIG = {
     "الهاتف: {phone}\n" +
     "العنوان: {address}\n" +
     "الكمية: {qty}\n" +
-    "الإجمالي: {total} ريال (شامل التوصيل — الدفع عند الاستلام)\n" +
+    "الإجمالي: {total} ريال (شامل التوصيل، الدفع عند الاستلام)\n" +
     "أبي أثبّت الطلب، والدفع عند الاستلام. متى أقدر أستلمه؟",
 };
