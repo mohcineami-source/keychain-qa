@@ -1,0 +1,9 @@
+{
+  "name": "nada-dryer-landing",
+  "private": true,
+  "version": "1.0.0",
+  "description": "نَدى portable clothes dryer landing page (Qatar) — static site + a Netlify Function that logs orders to Google Sheets.",
+  "dependencies": {
+    "googleapis": ">=120.0.0"
+  }
+}
