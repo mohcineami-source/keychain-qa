@@ -30,8 +30,15 @@ function getSheetsClient() {
   }
   // Netlify env vars store the key as one line with literal "\n" — restore real newlines.
   const key = rawKey.replace(/\\n/g, "\n");
-  const auth = new google.auth.JWT(email, null, key, ["https://www.googleapis.com/auth/spreadsheets"]);
-  return google.sheets({ version: "v4", auth });
+  // Object-style constructor — the old positional-args JWT(email, null, key, scopes) form
+  // silently fails to attach credentials on current googleapis/google-auth-library versions,
+  // producing "Method doesn't allow unregistered callers" instead of a clear auth error.
+  const auth = new google.auth.JWT({
+    email: email,
+    key: key,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+  return google.sheets({ version: "v4", auth: auth });
 }
 
 async function ensureTabAndHeader(sheets, spreadsheetId) {
