@@ -27,7 +27,7 @@
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     line-height: 1.5;
   }
-  .wrap { max-width: 780px; margin: 0 auto; }
+  .wrap { max-width: 820px; margin: 0 auto; }
   .banner {
     background: var(--accent);
     color: #000;
@@ -52,28 +52,24 @@
     text-transform: uppercase;
     letter-spacing: .08em;
     color: var(--muted);
-    margin: 0 0 12px;
+    margin: 0 0 14px;
     font-weight: 600;
   }
-  dl { display: grid; grid-template-columns: 150px 1fr; gap: 8px 16px; margin: 0; font-size: 14px; }
-  dt { color: var(--muted); }
-  dd { margin: 0; font-family: var(--mono); word-break: break-all; }
-  pre {
-    font-family: var(--mono);
-    font-size: 13px;
+  label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+  textarea, input[type="text"], input[type="number"] {
+    width: 100%;
     background: #0b0d11;
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 14px;
-    overflow-x: auto;
-    margin: 0;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 12px;
   }
-  .log { list-style: none; padding: 0; margin: 0; font-family: var(--mono); font-size: 13px; }
-  .log li { padding: 7px 0; border-bottom: 1px solid var(--border); }
-  .log li:last-child { border-bottom: 0; }
-  .t { color: var(--muted); margin-right: 10px; }
-  .ok { color: var(--ok); }
-  .err { color: var(--err); }
+  textarea { resize: vertical; min-height: 92px; }
+  textarea:focus, input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   button {
     background: var(--accent);
     color: #000;
@@ -85,61 +81,111 @@
     cursor: pointer;
     font-family: inherit;
   }
+  button.secondary { background: #2a303c; color: var(--text); }
   button:hover { filter: brightness(.93); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .log { list-style: none; padding: 0; margin: 0; font-family: var(--mono); font-size: 13px; max-height: 320px; overflow-y: auto; }
+  .log li { padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .log li:last-child { border-bottom: 0; }
+  .log .empty { color: var(--muted); font-style: italic; }
+  .t { color: var(--muted); margin-right: 10px; }
+  .ok { color: var(--ok); }
+  .err { color: var(--err); }
   code { font-family: var(--mono); background: #0b0d11; padding: 1px 5px; border-radius: 4px; font-size: .9em; }
   .note { font-size: 13px; color: var(--muted); }
   .note strong { color: var(--text); }
-  a { color: var(--accent); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    background: #0b0d11;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 9px;
+    margin: 3px 4px 0 0;
+  }
+  .pill.bad { border-color: var(--err); color: var(--err); }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <div class="banner">⚠ TEST PAGE — FIRES A FAKE PURCHASE ON EVERY LOAD</div>
+  <div class="banner">⚠ TEST PAGE — FIRES REAL PURCHASE EVENTS AT WHATEVER PIXEL YOU ENTER</div>
 
   <h1>Snap Pixel Test Harness</h1>
-  <p class="sub">Loads the Snapchat Pixel, fires <code>PAGE_VIEW</code>, then fires <code>PURCHASE</code>. Use it to confirm events reach Snap Events Manager, then take the page down.</p>
+  <p class="sub">Enter one or more Snap Pixel IDs, then fire <code>PURCHASE</code> at all of them. Use it to confirm events reach Snap Events Manager, then take the page down.</p>
 
   <div class="card">
-    <h2>Active config</h2>
-    <dl>
-      <dt>Pixel ID</dt><dd id="cfg-pixel">—</dd>
-      <dt>Price</dt><dd id="cfg-price">—</dd>
-      <dt>Currency</dt><dd id="cfg-currency">—</dd>
-      <dt>Transaction ID</dt><dd id="cfg-txn">—</dd>
-      <dt>Fire on load</dt><dd id="cfg-auto">—</dd>
-    </dl>
-  </div>
+    <h2>Pixels</h2>
+    <label for="pixels">Pixel IDs — one per line, or comma-separated</label>
+    <textarea id="pixels" spellcheck="false" placeholder="ab4c0065-91ac-4037-9e92-d680d086983a&#10;8aebb720-6161-4982-a60e-2d14817db185"></textarea>
+    <div class="hint" id="parsed"></div>
 
-  <div class="card">
-    <h2>PURCHASE payload sent</h2>
-    <pre id="payload">—</pre>
+    <div class="row">
+      <div>
+        <label for="price">Price</label>
+        <input type="text" id="price" value="1.00" spellcheck="false" />
+      </div>
+      <div>
+        <label for="currency">Currency</label>
+        <input type="text" id="currency" value="USD" spellcheck="false" />
+      </div>
+      <div>
+        <label for="count">Purchases per pixel</label>
+        <input type="number" id="count" value="1" min="1" max="20" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="fire">Fire PURCHASE</button>
+      <button id="refire" class="secondary" disabled>Fire again</button>
+      <button id="clear" class="secondary">Clear log</button>
+    </div>
+    <p class="hint" id="state"></p>
   </div>
 
   <div class="card">
     <h2>Event log</h2>
-    <ul class="log" id="log"></ul>
-    <p style="margin:16px 0 0"><button id="refire">Fire PURCHASE again</button></p>
+    <ul class="log" id="log"><li class="empty">Nothing fired yet.</li></ul>
   </div>
 
   <div class="card">
-    <h2>Overrides (query string)</h2>
+    <h2>How it works</h2>
     <p class="note" style="margin-top:0">
-      <code>?pixel=</code> pixel ID &middot;
-      <code>?price=</code> value &middot;
-      <code>?currency=</code> ISO code &middot;
-      <code>?txn=</code> transaction ID &middot;
-      <code>?auto=0</code> don't fire on load (button only)
+      Snap's library fires <code>track</code> at every pixel that has been <code>init</code>-ed on the page. To keep
+      that predictable, changing the pixel list reloads the page with a clean state so events only go to the IDs
+      currently listed — no leftovers from a previous set. <strong>Fire again</strong> re-fires at the current set
+      without reloading.
     </p>
     <p class="note" style="margin-bottom:0">
-      Each load generates a fresh transaction ID unless you pass <code>?txn=</code>, so Snap won't dedupe repeat tests into one event.
+      Every fire gets a fresh <code>transaction_id</code>, so Snap logs each as a distinct purchase rather than
+      deduping them into one.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Query string</h2>
+    <p class="note" style="margin-top:0">
+      <code>?pixel=</code> comma-separated IDs &middot;
+      <code>?price=</code> value &middot;
+      <code>?currency=</code> ISO code &middot;
+      <code>?count=</code> purchases per pixel &middot;
+      <code>?auto=0</code> fill the form but don't fire on load
+    </p>
+    <p class="note" style="margin-bottom:0">
+      Loading with <code>?pixel=…</code> fires on page load, so the URL alone is a working test. Without it, the page
+      just waits for the form. Your last-used values are remembered in this browser.
     </p>
   </div>
 
   <div class="card">
     <h2>Before you point ads at anything</h2>
     <p class="note" style="margin:0">
-      <strong>Take this page down once the pixel is verified.</strong> While it's live, every visitor is reported to Snap as a completed purchase — that trains the optimizer on fake conversions and inflates the purchase count in Ads Manager. It's a bench tool, not something to leave on a domain that receives traffic.
+      <strong>Take this page down once the pixel is verified.</strong> While it's live, every visitor is reported to
+      Snap as a completed purchase on whatever pixels are in the URL — that trains the optimizer on fake conversions
+      and inflates the purchase count in Ads Manager. Only ever point it at a pixel you own. It's a bench tool, not
+      something to leave on a domain that receives traffic.
     </p>
   </div>
 
@@ -147,21 +193,26 @@
 
 <script>
 (function () {
-  // ---- config ----------------------------------------------------------
-  var PLACEHOLDER_PIXEL_ID = "PUT-YOUR-PIXEL-ID-HERE";
-  var DEFAULT_PIXEL_ID = "ab4c0065-91ac-4037-9e92-d680d086983a";
+  var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  var LS_KEY = "snap-pixel-test:last";
 
-  var qs = new URLSearchParams(location.search);
-  var cfg = {
-    pixelId:  qs.get("pixel")    || DEFAULT_PIXEL_ID,
-    price:    qs.get("price")    || "1.00",
-    currency: qs.get("currency") || "USD",
-    txn:      qs.get("txn")      || "test-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
-    auto:     qs.get("auto")     !== "0"
+  var els = {
+    pixels: document.getElementById("pixels"),
+    price: document.getElementById("price"),
+    currency: document.getElementById("currency"),
+    count: document.getElementById("count"),
+    fire: document.getElementById("fire"),
+    refire: document.getElementById("refire"),
+    clear: document.getElementById("clear"),
+    log: document.getElementById("log"),
+    parsed: document.getElementById("parsed"),
+    state: document.getElementById("state")
   };
 
-  var logEl = document.getElementById("log");
+  // ---- logging ---------------------------------------------------------
   function log(msg, cls) {
+    var empty = els.log.querySelector(".empty");
+    if (empty) empty.remove();
     var li = document.createElement("li");
     var t = document.createElement("span");
     t.className = "t";
@@ -171,7 +222,37 @@
     m.textContent = msg;
     li.appendChild(t);
     li.appendChild(m);
-    logEl.appendChild(li);
+    els.log.appendChild(li);
+    els.log.scrollTop = els.log.scrollHeight;
+  }
+
+  // ---- parsing ---------------------------------------------------------
+  function parsePixels(raw) {
+    var parts = String(raw || "").split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var seen = {}, valid = [], invalid = [];
+    parts.forEach(function (p) {
+      if (!UUID_RE.test(p)) { invalid.push(p); return; }
+      var k = p.toLowerCase();
+      if (seen[k]) return;          // drop duplicates so one pixel isn't double-fired
+      seen[k] = 1;
+      valid.push(p);
+    });
+    return { valid: valid, invalid: invalid };
+  }
+
+  function renderParsed() {
+    var r = parsePixels(els.pixels.value);
+    var html = "";
+    r.valid.forEach(function (p) { html += '<span class="pill">' + p.slice(0, 8) + "…</span>"; });
+    r.invalid.forEach(function (p) {
+      var safe = p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      html += '<span class="pill bad">' + (safe.length > 20 ? safe.slice(0, 20) + "…" : safe) + " ✕</span>";
+    });
+    if (!r.valid.length && !r.invalid.length) html = "No pixel IDs entered.";
+    else html = r.valid.length + " valid" + (r.invalid.length ? ", " + r.invalid.length + " invalid" : "") + "<br>" + html;
+    els.parsed.innerHTML = html;
+    els.fire.disabled = r.valid.length === 0;
+    return r;
   }
 
   // ---- Snapchat Pixel base snippet -------------------------------------
@@ -188,49 +269,90 @@
     u.parentNode.insertBefore(r, u);
   })(window, document, "https://sc-static.net/scevent.min.js");
 
-  // ---- payload ---------------------------------------------------------
-  var purchase = {
-    price: cfg.price,
-    currency: cfg.currency,
-    transaction_id: cfg.txn
-  };
+  // ---- firing ----------------------------------------------------------
+  var inited = [];
 
-  // ---- render config ---------------------------------------------------
-  document.getElementById("cfg-pixel").textContent    = cfg.pixelId;
-  document.getElementById("cfg-price").textContent    = cfg.price;
-  document.getElementById("cfg-currency").textContent = cfg.currency;
-  document.getElementById("cfg-txn").textContent      = cfg.txn;
-  document.getElementById("cfg-auto").textContent     = cfg.auto ? "yes" : "no (button only)";
-  document.getElementById("payload").textContent      = JSON.stringify(purchase, null, 2);
-
-  // ---- fire ------------------------------------------------------------
-  if (!cfg.pixelId || cfg.pixelId === PLACEHOLDER_PIXEL_ID) {
-    log("No pixel ID set. Edit DEFAULT_PIXEL_ID in index.html or load with ?pixel=YOUR_ID", "err");
-    return;
+  function newTxn() {
+    return "test-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
   }
 
-  snaptr("init", cfg.pixelId);
-  log("init " + cfg.pixelId, "ok");
-
-  snaptr("track", "PAGE_VIEW");
-  log("track PAGE_VIEW", "ok");
-
-  function firePurchase() {
-    // fresh txn id per manual fire so Snap logs each as a distinct event
-    purchase.transaction_id = cfg.txn + "-" + Math.random().toString(36).slice(2, 6);
-    snaptr("track", "PURCHASE", purchase);
-    document.getElementById("cfg-txn").textContent = purchase.transaction_id;
-    document.getElementById("payload").textContent = JSON.stringify(purchase, null, 2);
-    log("track PURCHASE " + purchase.price + " " + purchase.currency + " (" + purchase.transaction_id + ")", "ok");
+  function firePurchases(price, currency, count) {
+    for (var i = 0; i < count; i++) {
+      var payload = { price: String(price), currency: String(currency), transaction_id: newTxn() };
+      snaptr("track", "PURCHASE", payload);
+      log("track PURCHASE " + payload.price + " " + payload.currency + " → " + inited.length +
+          " pixel" + (inited.length === 1 ? "" : "s") + " (" + payload.transaction_id + ")", "ok");
+    }
   }
 
-  if (cfg.auto) {
-    firePurchase();
+  function initAndFire(pixels, price, currency, count, auto) {
+    pixels.forEach(function (p) {
+      snaptr("init", p);
+      inited.push(p);
+      log("init " + p, "ok");
+    });
+    snaptr("track", "PAGE_VIEW");
+    log("track PAGE_VIEW → " + inited.length + " pixel" + (inited.length === 1 ? "" : "s"), "ok");
+
+    els.refire.disabled = false;
+    els.state.textContent = "Live on " + inited.length + " pixel" + (inited.length === 1 ? "" : "s") +
+      ". Editing the pixel list reloads the page.";
+
+    if (auto) firePurchases(price, currency, count);
+    else log("auto-fire disabled — use the button");
+  }
+
+  // ---- form → URL (reload for a clean init set) ------------------------
+  function submit() {
+    var r = renderParsed();
+    if (!r.valid.length) return;
+    if (r.invalid.length) log(r.invalid.length + " entry(s) ignored — not valid pixel IDs", "err");
+
+    var cfg = {
+      pixel: r.valid.join(","),
+      price: els.price.value.trim() || "1.00",
+      currency: (els.currency.value.trim() || "USD").toUpperCase(),
+      count: String(Math.max(1, Math.min(20, parseInt(els.count.value, 10) || 1)))
+    };
+    try { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); } catch (e) {}
+    location.search = "?pixel=" + encodeURIComponent(cfg.pixel) +
+                      "&price=" + encodeURIComponent(cfg.price) +
+                      "&currency=" + encodeURIComponent(cfg.currency) +
+                      "&count=" + encodeURIComponent(cfg.count);
+  }
+
+  // ---- boot ------------------------------------------------------------
+  var qs = new URLSearchParams(location.search);
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch (e) {}
+
+  els.pixels.value   = (qs.get("pixel") || saved.pixel || "").split(",").filter(Boolean).join("\n");
+  els.price.value    = qs.get("price")    || saved.price    || "1.00";
+  els.currency.value = qs.get("currency") || saved.currency || "USD";
+  els.count.value    = qs.get("count")    || saved.count    || "1";
+
+  var r = renderParsed();
+
+  els.pixels.addEventListener("input", renderParsed);
+  els.fire.addEventListener("click", submit);
+  els.refire.addEventListener("click", function () {
+    firePurchases(els.price.value.trim() || "1.00",
+                  (els.currency.value.trim() || "USD").toUpperCase(),
+                  Math.max(1, Math.min(20, parseInt(els.count.value, 10) || 1)));
+  });
+  els.clear.addEventListener("click", function () {
+    els.log.innerHTML = '<li class="empty">Nothing fired yet.</li>';
+  });
+
+  if (qs.get("pixel") && r.valid.length) {
+    initAndFire(r.valid,
+                els.price.value,
+                els.currency.value,
+                Math.max(1, Math.min(20, parseInt(els.count.value, 10) || 1)),
+                qs.get("auto") !== "0");
   } else {
-    log("auto-fire disabled — use the button");
+    els.state.textContent = "No pixels initialised yet — enter IDs and hit Fire PURCHASE.";
   }
-
-  document.getElementById("refire").addEventListener("click", firePurchase);
 })();
 </script>
 </body>
