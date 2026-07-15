@@ -148,7 +148,8 @@
 <script>
 (function () {
   // ---- config ----------------------------------------------------------
-  var DEFAULT_PIXEL_ID = "PUT-YOUR-PIXEL-ID-HERE";
+  var PLACEHOLDER_PIXEL_ID = "PUT-YOUR-PIXEL-ID-HERE";
+  var DEFAULT_PIXEL_ID = "ab4c0065-91ac-4037-9e92-d680d086983a";
 
   var qs = new URLSearchParams(location.search);
   var cfg = {
@@ -203,7 +204,7 @@
   document.getElementById("payload").textContent      = JSON.stringify(purchase, null, 2);
 
   // ---- fire ------------------------------------------------------------
-  if (cfg.pixelId === DEFAULT_PIXEL_ID) {
+  if (!cfg.pixelId || cfg.pixelId === PLACEHOLDER_PIXEL_ID) {
     log("No pixel ID set. Edit DEFAULT_PIXEL_ID in index.html or load with ?pixel=YOUR_ID", "err");
     return;
   }

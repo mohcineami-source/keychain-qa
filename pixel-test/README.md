@@ -9,14 +9,14 @@ hosted URL to confirm the pixel actually reports.
 
 ## Setup
 
-Either hardcode the pixel ID:
+The pixel ID is already baked in — `index.html` defaults to
+`ab4c0065-91ac-4037-9e92-d680d086983a`, so just deploying and opening the page fires against it.
 
-```js
-// index.html
-var DEFAULT_PIXEL_ID = "PUT-YOUR-PIXEL-ID-HERE";
-```
+To test a different pixel without redeploying, pass it at runtime:
+`https://<site>.netlify.app/?pixel=SOME_OTHER_PIXEL_ID`
 
-…or leave it and pass the ID at runtime: `https://<site>.netlify.app/?pixel=YOUR_PIXEL_ID`
+(Pixel IDs aren't secrets — they're visible in client-side JS on every site that uses one — so this
+is fine to keep in the repo.)
 
 ## Query string overrides
 
