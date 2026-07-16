@@ -1,0 +1,3 @@
+# Raw Higgsfield renders (~36MB of PNG). Reproducible via make_ads.py's sources;
+# only the finished 1080x1920 creatives in final/ are tracked.
+base/
