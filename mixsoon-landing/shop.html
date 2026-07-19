@@ -1,0 +1,538 @@
+<!doctype html>
+<!--
+==================================================================================
+  mixsoon — SHOPIFY-STYLE PRODUCT PAGE VARIANT (TEST ONLY — NOT DEPLOYED)
+  Lives only in the working folder; not copied to the repo, never auto-deploys.
+  Structure mirrors a Shopify PDP: gallery + thumbs, buy box (title/price/variants),
+  buy button, trust badges, GUARANTEE band, accordions, sticky mobile buy bar.
+  Same order flow as index.html: WhatsApp + Snap PURCHASE + Sheets log.
+  GUARANTEE TERMS (need Mo's sign-off before this ever ships):
+    1) فحص عند الاستلام: open + inspect in front of the courier, refuse = pay nothing
+    2) 7-day exchange/refund if the product arrives defective or not as pictured
+==================================================================================
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>mixsoon — مجموعة العناية الكورية | الدفع عند الاستلام</title>
+<meta name="robots" content="noindex"><!-- test page -->
+<meta name="description" content="مجموعة mixsoon الكورية — روتين كامل بـ ٥ خطوات. الدفع عند الاستلام، توصيل داخل قطر خلال ٢٤ ساعة، وضمان النتيجة ٣٠ يوم.">
+<meta property="og:title" content="مجموعة mixsoon الكورية — روتين كامل بـ ٥ خطوات">
+<meta property="og:description" content="الدفع عند الاستلام · توصيل خلال ٢٤ ساعة · ضمان النتيجة ٣٠ يوم أو فلوسج ترجع لج">
+<meta property="og:type" content="product">
+<meta property="og:image" content="images/hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=El+Messiri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="images/g_hero_800.jpg" fetchpriority="high">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Product",
+ "name":"mixsoon Pure Glow Essentials Set — روتين كوري كامل ٥ خطوات",
+ "brand":{"@type":"Brand","name":"mixsoon"},
+ "image":["images/hero.jpg","images/steps_set.jpg","images/whats_inside.jpg"],
+ "description":"مجموعة العناية الكورية الكاملة: زيت تنظيف ٢٠ مل، غسول رغوة ٢٠ مل، تونر ٣٠ مل، إيسنس ٢٠ مل، كريم ترطيب ١٥ مل. الدفع عند الاستلام في قطر.",
+ "offers":{"@type":"AggregateOffer","priceCurrency":"QAR","lowPrice":"199","highPrice":"549","offerCount":"3","availability":"https://schema.org/InStock"}}
+</script>
+
+<style>
+:root{
+  --olive:#6f7a3f; --olive-d:#545c2f; --olive-x:#3f4623; --sage:#9caf83; --sage-l:#e7ecdb;
+  --cream:#f7f3eb; --cream-2:#efe8db; --card:#ffffff;
+  --ink:#2b2a24; --muted:#7c766a; --line:#e6dfd1;
+  --wa:#25D366; --ok:#3f8f5b; --maxw:1120px;
+  --shadow:0 14px 40px rgba(70,64,38,.12);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--cream);color:var(--ink);
+  font-family:"Almarai",system-ui,"Segoe UI",Tahoma,sans-serif;
+  direction:rtl;text-align:right;line-height:1.7;-webkit-font-smoothing:antialiased;
+  padding-bottom:84px}
+h1,h2,h3{line-height:1.3;margin:0 0 .4em;font-family:"El Messiri","Almarai",system-ui,sans-serif}
+p{margin:0 0 1em}
+img{max-width:100%;display:block;height:auto}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 18px}
+
+/* announce + header (same brand chrome) */
+.announce{background:linear-gradient(90deg,var(--olive-x),var(--olive-d));color:#f4f1e8;text-align:center;font-size:.82rem;font-weight:500;padding:9px 12px}
+.hdr{position:sticky;top:0;z-index:40;background:rgba(247,243,235,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hdr .wrap{display:flex;align-items:center;justify-content:space-between;height:58px}
+.brand{font-weight:700;font-size:1.3rem;font-family:Georgia,"Times New Roman",serif;letter-spacing:.02em}
+.hdr .cod{font-size:.76rem;color:var(--olive-d);font-weight:600;background:var(--sage-l);border:1px solid #d8dfc6;padding:5px 12px;border-radius:999px}
+
+/* ===== Shopify-style product layout ===== */
+.pdp{display:grid;gap:26px;padding:22px 0 40px}
+@media(min-width:920px){.pdp{grid-template-columns:1.05fr .95fr;align-items:start;padding-top:34px}}
+
+/* gallery */
+.gallery{position:sticky;top:74px}
+@media(max-width:919px){.gallery{position:static}}
+.gal-main{border-radius:18px;overflow:hidden;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow)}
+.gal-main img{width:100%;aspect-ratio:1/1;object-fit:cover;transition:opacity .15s;cursor:zoom-in;touch-action:pan-y}
+
+/* zoom lightbox */
+.lightbox{position:fixed;inset:0;z-index:100;background:rgba(28,26,20,.94);display:grid;place-items:center;padding:18px}
+.lightbox[hidden]{display:none}
+.lightbox img{max-width:100%;max-height:92vh;border-radius:12px}
+.lb-close{position:absolute;top:14px;inset-inline-start:14px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:26px;cursor:pointer}
+
+/* a11y focus */
+.vopt:focus-visible,.thumb:focus-visible,.buybtn:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+.thumbs{display:flex;gap:10px;margin-top:12px;overflow-x:auto;padding-bottom:4px}
+.thumb{flex:0 0 74px;width:74px;height:74px;border-radius:12px;overflow:hidden;border:2px solid var(--line);cursor:pointer;padding:0;background:#fff}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb.sel{border-color:var(--olive)}
+
+/* buy box */
+.buybox{background:#fff;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:var(--shadow)}
+.crumb{font-size:.78rem;color:var(--muted);margin-bottom:6px}
+.ptitle{font-size:1.6rem;margin:0 0 4px}
+.psub{color:var(--muted);font-size:.95rem;margin:0 0 12px}
+.stockrow{display:flex;align-items:center;gap:8px;font-size:.85rem;font-weight:600;color:var(--ok);margin-bottom:12px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.pricerow{display:flex;align-items:baseline;gap:10px;border-top:1px solid var(--line);padding-top:14px;margin-bottom:14px}
+.price{font-size:2rem;font-weight:800;color:var(--olive-x);font-family:"El Messiri",sans-serif}
+.price small{font-size:1rem;font-weight:600}
+.was{color:var(--muted);text-decoration:line-through;font-size:1.05rem}
+.savepill{background:#fdeee0;color:#a05a1f;font-size:.78rem;font-weight:700;padding:4px 10px;border-radius:999px}
+.vlabel{font-weight:700;font-size:.92rem;margin:2px 0 8px}
+.variants{display:grid;gap:10px;margin-bottom:16px}
+.vopt{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;border:2px solid var(--line);border-radius:14px;padding:13px 14px;cursor:pointer;background:#fff;transition:.15s}
+.vopt.sel{border-color:var(--olive);background:#f7f8f0}
+.vopt .vt{font-weight:700}
+.vopt .vs{display:block;font-size:.74rem;color:var(--muted);font-weight:500}
+.vopt .vsave{display:block;font-size:.74rem;color:var(--olive-d);font-weight:700}
+.vopt .vp{font-weight:700;white-space:nowrap;text-align:left}
+.vopt .vp s{color:var(--muted);font-weight:400;font-size:.8rem}
+.vopt .rib{position:absolute;top:-10px;inset-inline-start:12px;background:var(--olive);color:#fff;font-size:.68rem;font-weight:700;padding:2px 10px;border-radius:999px}
+
+/* delivery details fields */
+.fields{border-top:1px dashed var(--line);padding-top:14px;margin-top:2px}
+.fields .flabel{font-weight:700;font-size:.92rem;margin-bottom:10px}
+.field{margin-bottom:12px}
+.field label{display:block;font-weight:600;font-size:.85rem;margin-bottom:5px}
+.field input,.field textarea{width:100%;font-family:inherit;font-size:1rem;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:#fcfbf8;color:var(--ink)}
+.field input:focus,.field textarea:focus{outline:2px solid var(--sage);border-color:var(--olive)}
+.field .err{color:#c0492f;font-size:.8rem;margin-top:4px;display:none}
+.field.invalid .err{display:block}
+.field.invalid input,.field.invalid textarea{border-color:#c0492f}
+.phonewrap{display:flex;gap:8px}
+.phonewrap .prefix{direction:ltr;display:flex;align-items:center;padding:0 13px;border:1px solid var(--line);border-radius:11px;background:#f1ede3;font-weight:700;color:var(--olive-d)}
+.phonewrap input{flex:1;direction:ltr;text-align:left}
+
+.buybtn{display:block;width:100%;border:0;cursor:pointer;background:linear-gradient(180deg,var(--olive),var(--olive-d));color:#fff;border-radius:999px;padding:17px;font-weight:700;font-size:1.1rem;font-family:"El Messiri","Almarai",sans-serif;box-shadow:0 10px 24px rgba(84,92,47,.35)}
+.buybtn small{display:block;font-size:.76em;font-weight:400;opacity:.95;font-family:"Almarai",sans-serif}
+.wa-fallback{display:none;margin-top:12px;background:#f7f8f0;border:1px solid #e4e8d5;border-radius:12px;padding:12px 14px;text-align:center;font-size:.9rem}
+.wa-fallback.show{display:block}
+.wa-fallback a{color:var(--olive-d);font-weight:700}
+
+/* trust badges under buy button */
+.badges{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.badge{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center;font-size:.72rem;font-weight:700;color:var(--olive-x)}
+.badge .bic{width:20px;height:20px;display:block;margin:0 auto 4px;stroke:var(--olive-d);fill:none;stroke-width:1.8}
+
+/* guarantee band */
+.guarantee{margin-top:16px;background:linear-gradient(135deg,#f4f6ec,#eef0e4);border:1.5px solid #cdd6b4;border-radius:16px;padding:16px}
+.guarantee .ghead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.gshield{flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:var(--olive);display:grid;place-items:center}
+.gshield svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2}
+.guarantee h3{margin:0;font-size:1.05rem}
+.guarantee ul{list-style:none;margin:0;padding:0}
+.guarantee li{display:flex;gap:8px;align-items:flex-start;font-size:.88rem;margin-top:7px}
+.gcheck{flex:0 0 18px;width:18px;height:18px;border-radius:50%;background:var(--olive);color:#fff;font-size:11px;line-height:18px;text-align:center;font-weight:700;margin-top:3px}
+.guarantee b{color:var(--olive-x)}
+
+/* accordions (Shopify-style) */
+.accs{margin-top:18px}
+.accs details{border-top:1px solid var(--line)}
+.accs details:last-child{border-bottom:1px solid var(--line)}
+.accs summary{cursor:pointer;padding:15px 2px;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center;font-size:.95rem}
+.accs summary::-webkit-details-marker{display:none}
+.accs summary::after{content:"+";color:var(--olive);font-size:1.3rem;font-weight:400}
+.accs details[open] summary::after{content:"–"}
+.accs .acc-b{padding:0 2px 15px;color:var(--muted);font-size:.9rem}
+.accs .acc-b b{color:var(--ink)}
+
+/* reassure row */
+.reassure{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:14px;color:var(--muted);font-size:.78rem}
+
+/* sticky mobile buy bar */
+.sticky{position:fixed;inset-inline:0;bottom:0;z-index:50;background:rgba(247,243,235,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:12px;align-items:center;transform:translateY(110%);transition:transform .25s ease}
+.sticky.show{transform:none}
+.sticky .p{font-weight:700;white-space:nowrap}
+.sticky .p small{display:block;font-weight:500;color:var(--muted);font-size:.7rem}
+.sticky a{flex:1;text-align:center;background:linear-gradient(180deg,var(--olive),var(--olive-d));color:#fff;border-radius:999px;padding:13px;font-weight:700;text-decoration:none;font-family:"El Messiri",sans-serif}
+@media(min-width:920px){.sticky{display:none}body{padding-bottom:0}}
+
+/* floating WhatsApp */
+.wafloat{position:fixed;bottom:96px;inset-inline-end:14px;z-index:60;display:flex;align-items:center;gap:9px;text-decoration:none}
+.wafloat-chip{background:#fff;color:var(--olive-x);font-weight:700;font-size:.8rem;padding:8px 13px;border-radius:999px;box-shadow:0 6px 18px rgba(70,64,38,.18);border:1px solid var(--line)}
+.wafloat-btn{width:54px;height:54px;border-radius:50%;background:var(--wa);display:grid;place-items:center;box-shadow:0 8px 24px rgba(37,211,102,.45)}
+.wafloat-btn svg{width:28px;height:28px;fill:#fff}
+@media(min-width:920px){.wafloat{bottom:24px}}
+
+/* footer */
+.foot{background:var(--olive-x);color:#e9e7db;text-align:center;padding:32px 20px}
+.foot a{color:#fff;font-weight:600;text-decoration:none}
+.foot .sm{font-size:.78rem;opacity:.8;margin-top:8px}
+</style>
+
+<!-- Snapchat Pixel (same as live page) -->
+<script type="text/javascript">
+(function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function(){a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};
+a.queue=[];var s="script";var r=t.createElement(s);r.async=!0;r.src=n;var u=t.getElementsByTagName(s)[0];
+u.parentNode.insertBefore(r,u);})(window,document,"https://sc-static.net/scevent.min.js");
+snaptr("init","8aebb720-6161-4982-a60e-2d14817db185");
+snaptr("track","PAGE_VIEW");
+</script>
+</head>
+<body>
+
+<div class="announce"><b>الدفع عند الاستلام</b> &#183; توصيل داخل قطر خلال ٢٤ ساعة &#183; افتحي وتأكدي قبل ما تدفعين</div>
+
+<header class="hdr"><div class="wrap">
+  <div class="brand">mixsoon</div>
+  <div class="cod">الدفع عند الاستلام</div>
+</div></header>
+
+<main class="wrap"><div class="pdp">
+
+  <!-- ======== GALLERY ======== -->
+  <section class="gallery" id="gallery" aria-label="صور المنتج">
+    <div class="gal-main">
+      <img id="galMain" src="images/g_hero_800.jpg"
+           srcset="images/g_hero_800.jpg 800w, images/hero.jpg 1400w"
+           sizes="(min-width:920px) 560px, 100vw"
+           width="800" height="680" alt="مجموعة mixsoon Pure Glow Essentials" fetchpriority="high">
+    </div>
+    <div class="thumbs" id="thumbs" role="tablist" aria-label="اختيار الصورة">
+      <button class="thumb sel" data-base="hero" aria-label="المجموعة"><img src="images/t_hero.jpg" width="150" height="150" alt="المجموعة"></button>
+      <button class="thumb" data-base="steps_set" aria-label="الخطوات ١-٥"><img src="images/t_steps_set.jpg" width="150" height="150" loading="lazy" decoding="async" alt="الخطوات ١-٥"></button>
+      <button class="thumb" data-base="whats_inside" aria-label="محتويات العلبة"><img src="images/t_whats_inside.jpg" width="150" height="150" loading="lazy" decoding="async" alt="محتويات العلبة"></button>
+      <button class="thumb" data-base="texture" aria-label="القوام"><img src="images/t_texture.jpg" width="150" height="150" loading="lazy" decoding="async" alt="القوام"></button>
+      <button class="thumb" data-base="lifestyle" aria-label="على المغسلة"><img src="images/t_lifestyle.jpg" width="150" height="150" loading="lazy" decoding="async" alt="على المغسلة"></button>
+    </div>
+  </section>
+
+  <!-- zoom lightbox -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="تكبير الصورة" hidden>
+    <img id="lbImg" src="" alt="صورة مكبّرة">
+    <button class="lb-close" id="lbClose" aria-label="إغلاق">&#215;</button>
+  </div>
+
+  <!-- ======== BUY BOX ======== -->
+  <section class="buybox" id="buy">
+    <div class="crumb">العناية بالبشرة &#8250; الروتين الكوري</div>
+    <h1 class="ptitle">مجموعة mixsoon الكورية — روتين كامل بـ ٥ خطوات</h1>
+    <p class="psub">تنظيف عميق لكن لطيف، وترطيب يريّح بشرتج — كل اللي تحتاجينه بعلبة وحدة، بالترتيب الصح.</p>
+    <div class="stockrow"><span class="dot"></span> متوفرة — توصيل داخل قطر خلال ٢٤ ساعة</div>
+
+    <!-- GUARANTEE — above the price (Mo's call). Terms = Mo's commitment. -->
+    <div class="guarantee" style="margin:0 0 16px">
+      <div class="ghead">
+        <span class="gshield"><svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7z"/><path d="M9 12l2 2 4-4"/></svg></span>
+        <h3>ضمان النتيجة — أو فلوسج ترجع لج كاملة</h3>
+      </div>
+      <ul>
+        <li><span class="gcheck">&#10003;</span><span><b>ضمان النتيجة ٣٠ يوم:</b> استخدمي الروتين شهر كامل، وإذا ما شفتي نتيجة على بشرتج — نرجع لج فلوسج كاملة، بدون أسئلة.</span></li>
+        <li><span class="gcheck">&#10003;</span><span><b>افتحي وتأكدي قبل ما تدفعين:</b> عايني الطلبية قدام المندوب، وإذا ما عجبتج رجعيها وما تدفعين ولا ريال.</span></li>
+        <li><span class="gcheck">&#10003;</span><span><b>منتج أصلي ١٠٠٪:</b> mixsoon الكورية الأصلية بتغليفها الرسمي.</span></li>
+      </ul>
+    </div>
+
+    <div class="pricerow">
+      <span class="price" id="priceNow"></span>
+      <span class="was" id="priceWas" hidden></span>
+      <span class="savepill" id="savePill" hidden></span>
+    </div>
+
+    <div class="vlabel" id="vlabel">اختاري باقتج:</div>
+    <div class="variants" id="variants" role="radiogroup" aria-labelledby="vlabel">
+      <div class="vopt sel" data-qty="1" role="radio" aria-checked="true" tabindex="0">
+        <span><span class="vt">روتين شهر</span><span class="vs">مجموعة وحدة</span></span>
+        <span class="vp" data-vp="1"></span>
+      </div>
+      <div class="vopt" data-qty="2" role="radio" aria-checked="false" tabindex="0">
+        <span><span class="vt">روتين شهرين</span><span class="vs">مجموعتين</span><span class="vsave" data-vsave="2"></span></span>
+        <span class="vp" data-vp="2"></span>
+      </div>
+      <div class="vopt" data-qty="3" role="radio" aria-checked="false" tabindex="0">
+        <span class="rib">الأكثر توفيراً</span>
+        <span><span class="vt">روتين ٣ شهور</span><span class="vs">٣ مجموعات</span><span class="vsave" data-vsave="3"></span></span>
+        <span class="vp" data-vp="3"></span>
+      </div>
+    </div>
+
+    <form id="orderForm" class="fields" novalidate>
+      <div class="flabel">بيانات التوصيل — أقل من دقيقة:</div>
+      <div class="field" id="f-name">
+        <label for="name">الاسم الكامل</label>
+        <input id="name" name="name" type="text" autocomplete="name" enterkeyhint="next" placeholder="اكتبي اسمج">
+        <div class="err">اكتبي اسمج لو سمحتي</div>
+      </div>
+      <div class="field" id="f-phone">
+        <label for="phone">رقم الجوال (واتساب)</label>
+        <div class="phonewrap">
+          <span class="prefix">+974</span>
+          <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" enterkeyhint="next" placeholder="55123456" maxlength="16">
+        </div>
+        <div class="err">اكتبي رقم صحيح (٨ أرقام) لو سمحتي</div>
+      </div>
+      <div class="field" id="f-addr">
+        <label for="address">العنوان بالتفصيل</label>
+        <textarea id="address" name="address" rows="2" autocomplete="street-address" enterkeyhint="done" placeholder="المدينة، المنطقة، الشارع، رقم البيت / الفيلا"></textarea>
+        <div class="err">اكتبي العنوان لو سمحتي</div>
+      </div>
+
+      <button type="submit" class="buybtn" id="buyBtn">اطلبي الحين — الدفع عند الاستلام</button>
+      <div class="wa-fallback" id="waFallback">
+        طلبج جاهز &#10003; — إذا ما فتح واتساب تلقائياً،
+        <a id="waFallbackLink" href="#" target="_blank" rel="noopener">اضغطي هنا لإرساله</a>
+      </div>
+
+      <div class="badges">
+        <span class="badge"><svg class="bic" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M3 11h18M7 15h4"/></svg>ادفعي عند الاستلام</span>
+        <span class="badge"><svg class="bic" viewBox="0 0 24 24"><path d="M3 13h11V6H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>توصيل خلال ٢٤ ساعة</span>
+        <span class="badge"><svg class="bic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>بياناتج محفوظة</span>
+      </div>
+    </form>
+
+    <!-- ======== ACCORDIONS ======== -->
+    <div class="accs">
+      <details open>
+        <summary>شنو داخل العلبة؟</summary>
+        <div class="acc-b">
+          خمس منتجات تكمّل بعضها — تنظيف، توازن، وترطيب:<br>
+          <b>١. زيت التنظيف ٢٠ مل</b> — يذيب الأوساخ والزيوت بلطف.<br>
+          <b>٢. غسول الرغوة ٢٠ مل</b> — تنظيف عميق لكن ناعم.<br>
+          <b>٣. التونر ٣٠ مل</b> — يهيّئ البشرة ويوازنها.<br>
+          <b>٤. الإيسنس ٢٠ مل</b> — خطوة العناية المركّزة للإشراق.<br>
+          <b>٥. كريم الترطيب ١٥ مل</b> — يقفل الترطيب طوال اليوم.<br>
+          <span style="font-size:.82rem">اللي يوصلج هو نفس اللي تشوفينه بالصور — نفس المنتجات ونفس الأحجام.</span>
+        </div>
+      </details>
+      <details>
+        <summary>كيف أستخدمها؟</summary>
+        <div class="acc-b">بالترتيب: زيت التنظيف &#8592; غسول الرغوة &#8592; التونر &#8592; الإيسنس &#8592; كريم الترطيب. مرة وحدة باليوم تكفي، وإذا تبين نتيجة أسرع استخدميها صباح ومساء. المجموعة الوحدة تكفيج شهر تقريباً بالاستخدام اليومي مرة وحدة.</div>
+      </details>
+      <details>
+        <summary>يناسب بشرتي؟</summary>
+        <div class="acc-b">التركيبات لطيفة وتناسب أغلب أنواع البشرة. إذا بشرتج حساسة وايد، جرّبي أول على منطقة صغيرة.</div>
+      </details>
+      <details>
+        <summary>التوصيل والدفع</summary>
+        <div class="acc-b">التوصيل داخل قطر خلال <b>٢٤ ساعة</b>. الدفع <b>كاش عند الاستلام</b> — ما تدفعين شي إلا لما توصلج الطلبية عند بابج. نأكّد طلبج عبر واتساب قبل الشحن.</div>
+      </details>
+      <details>
+        <summary>الضمان والاسترجاع</summary>
+        <div class="acc-b"><b>ضمان النتيجة ٣٠ يوم:</b> استخدمي الروتين شهر كامل بالترتيب، وإذا ما شفتي نتيجة على بشرتج — كلمينا على واتساب ونرجع لج فلوسج كاملة، بدون أسئلة. وقبل كل شي، تقدرين تفتحين الطلبية وتعاينينها قدام المندوب قبل ما تدفعين — إذا ما عجبتج، رجعيها بدون أي رسوم.</div>
+      </details>
+    </div>
+
+    <div class="reassure">
+      <span>&#10003; ما تدفعين إلا عند الاستلام</span>
+      <span>&#10003; افتحي وتأكدي قبل الدفع</span>
+      <span>&#10003; ضمان النتيجة ٣٠ يوم</span>
+    </div>
+  </section>
+
+</div></main>
+
+<!-- floating WhatsApp -->
+<a id="waFloat" class="wafloat" href="#" target="_blank" rel="noopener" aria-label="اسألينا على واتساب">
+  <span class="wafloat-chip">عندج سؤال؟</span>
+  <span class="wafloat-btn"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16.04 3C9.4 3 4 8.36 4 14.95c0 2.63.87 5.07 2.34 7.04L4.8 27.2l5.36-1.5a12.1 12.1 0 0 0 5.88 1.5c6.63 0 12.03-5.36 12.03-11.95C28.07 8.36 22.67 3 16.04 3zm0 21.85c-1.87 0-3.68-.5-5.26-1.44l-.38-.22-3.18.89.9-3.06-.25-.4a9.6 9.6 0 0 1-1.5-5.17c0-5.36 4.4-9.72 9.77-9.72 5.36 0 9.76 4.36 9.76 9.72s-4.4 9.72-9.76 9.72zm5.36-7.28c-.29-.15-1.73-.85-2-.95-.27-.1-.46-.15-.66.15-.2.29-.76.94-.93 1.14-.17.19-.34.22-.63.07-.29-.14-1.24-.45-2.36-1.45-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.13-.6.13-.13.29-.34.44-.51.15-.17.2-.29.29-.49.1-.19.05-.36-.02-.51-.08-.15-.66-1.59-.91-2.17-.24-.57-.48-.49-.66-.5h-.56c-.2 0-.51.07-.78.36-.27.29-1.02 1-1.02 2.43s1.05 2.82 1.19 3.01c.15.19 2.06 3.14 4.98 4.4.7.3 1.24.48 1.66.61.7.22 1.33.19 1.83.12.56-.08 1.73-.71 1.97-1.39.24-.68.24-1.26.17-1.39-.07-.12-.26-.19-.55-.34z"/></svg></span>
+</a>
+
+<!-- sticky mobile buy bar -->
+<div class="sticky" id="stickyBar">
+  <div class="p"><span id="stickyPrice"></span><small>الدفع عند الاستلام</small></div>
+  <a href="#buy">اطلبي الحين</a>
+</div>
+
+<footer class="foot">
+  <div class="brand" style="color:#fff;font-size:1.2rem">mixsoon</div>
+  <p style="margin:6px 0 0">روتين العناية الكوري الكامل &#183; قطر</p>
+  <p class="sm">تحتاجين مساعدة؟ <a id="waHelp" href="#">كلمينا على واتساب</a></p>
+  <p class="sm">&#169; <span id="yr"></span> mixsoon &#183; جميع الحقوق محفوظة</p>
+</footer>
+
+<script>
+/* ===== CONFIG (same values as the live page) ===== */
+const CFG = {
+  currency: "ر.ق",
+  tiers: { 1: 199, 2: 379, 3: 549 },
+  unit: 199,
+  whatsapp: "97433423421",
+  productName: "mixsoon Pure Glow Essentials",
+  sheetsEndpoint: "/.netlify/functions/submit-order"
+};
+const fmt = n => n.toLocaleString("ar-EG") + " " + CFG.currency;
+const QTY_LABEL = {1:"مجموعة وحدة (روتين شهر)", 2:"مجموعتين (روتين شهرين)", 3:"٣ مجموعات (روتين ٣ شهور)"};
+let qty = 1;
+
+/* variant prices */
+document.querySelector("[data-vp='1']").textContent = fmt(CFG.tiers[1]);
+document.querySelector("[data-vp='2']").innerHTML = fmt(CFG.tiers[2]) + " <s>" + fmt(CFG.unit*2) + "</s>";
+document.querySelector("[data-vp='3']").innerHTML = fmt(CFG.tiers[3]) + " <s>" + fmt(CFG.unit*3) + "</s>";
+document.querySelector("[data-vsave='2']").textContent = "وفّري " + fmt(CFG.unit*2 - CFG.tiers[2]);
+document.querySelector("[data-vsave='3']").textContent = "وفّري " + fmt(CFG.unit*3 - CFG.tiers[3]);
+
+function refresh(){
+  const t = CFG.tiers[qty];
+  document.getElementById("priceNow").innerHTML = fmt(t);
+  const was = document.getElementById("priceWas"), pill = document.getElementById("savePill");
+  if (qty > 1) {
+    was.hidden = false; was.textContent = fmt(CFG.unit * qty);
+    pill.hidden = false; pill.textContent = "وفّري " + fmt(CFG.unit*qty - t);
+  } else { was.hidden = true; pill.hidden = true; }
+  document.getElementById("stickyPrice").textContent = fmt(t);
+  document.getElementById("buyBtn").innerHTML =
+    'اطلبي الحين — الدفع عند الاستلام<small>' + fmt(t) + ' &#183; توصيل خلال ٢٤ ساعة</small>';
+}
+refresh();
+
+/* variant selection (click + keyboard, radio semantics) */
+function selectVariant(el){
+  document.querySelectorAll(".vopt").forEach(x=>{x.classList.remove("sel");x.setAttribute("aria-checked","false");});
+  el.classList.add("sel"); el.setAttribute("aria-checked","true");
+  qty = parseInt(el.dataset.qty,10);
+  refresh();
+}
+document.querySelectorAll(".vopt").forEach(el=>{
+  el.addEventListener("click",()=>selectVariant(el));
+  el.addEventListener("keydown",e=>{
+    if(e.key===" "||e.key==="Enter"){e.preventDefault();selectVariant(el);}
+  });
+});
+
+/* gallery: responsive swap + swipe + zoom lightbox */
+const GAL=["hero","steps_set","whats_inside","texture","lifestyle"];
+let galIdx=0;
+const galMain=document.getElementById("galMain");
+function showImage(i){
+  galIdx=(i+GAL.length)%GAL.length;
+  const b=GAL[galIdx];
+  galMain.src="images/g_"+b+"_800.jpg";
+  galMain.srcset="images/g_"+b+"_800.jpg 800w, images/"+b+".jpg 1400w";
+  document.querySelectorAll(".thumb").forEach((x,xi)=>x.classList.toggle("sel",xi===galIdx));
+}
+document.querySelectorAll(".thumb").forEach((th,ti)=>{
+  th.addEventListener("click",e=>{e.preventDefault();showImage(ti);});
+});
+/* swipe on the main image */
+let tx=null;
+galMain.addEventListener("touchstart",e=>{tx=e.touches[0].clientX;},{passive:true});
+galMain.addEventListener("touchend",e=>{
+  if(tx===null)return;
+  const dx=e.changedTouches[0].clientX-tx; tx=null;
+  if(Math.abs(dx)>40) showImage(galIdx+(dx<0?-1:1)); /* RTL: swipe left = previous */
+},{passive:true});
+/* tap to zoom */
+const lb=document.getElementById("lightbox"), lbImg=document.getElementById("lbImg");
+galMain.addEventListener("click",()=>{
+  lbImg.src="images/"+GAL[galIdx]+".jpg"; /* full resolution in the lightbox */
+  lb.hidden=false; document.body.style.overflow="hidden";
+});
+function lbClose(){lb.hidden=true; document.body.style.overflow="";}
+lb.addEventListener("click",lbClose);
+document.getElementById("lbClose").addEventListener("click",lbClose);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!lb.hidden)lbClose();});
+
+/* helpers (same as live page) */
+const AR_DIGITS="٠١٢٣٤٥٦٧٨٩", FA_DIGITS="۰۱۲۳۴۵۶۷۸۹";
+function toEnDigits(s){return (s||"").replace(/[٠-٩]/g,d=>AR_DIGITS.indexOf(d)).replace(/[۰-۹]/g,d=>FA_DIGITS.indexOf(d));}
+function normalizePhone(raw){
+  let d = toEnDigits(raw).replace(/\D/g,"");
+  if(d.startsWith("00")) d = d.slice(2);
+  if(d.startsWith("974")) d = d.slice(3);
+  if(d.length === 8) return "974" + d;
+  if(d.length >= 10 && d.length <= 14) return d;
+  return null;
+}
+function setInvalid(id,bad){ document.getElementById(id).classList.toggle("invalid",bad); return !bad; }
+function buildOrderUrl(q,name,phoneIntl,addr){
+  const lines=[
+    "طلب جديد — "+CFG.productName,
+    "————————————",
+    "المنتج: مجموعة Pure Glow Essentials",
+    "الكمية: "+QTY_LABEL[q],
+    "الإجمالي: "+fmt(CFG.tiers[q])+" (الدفع عند الاستلام)",
+    "————————————",
+    "الاسم: "+name,
+    "الجوال: +"+phoneIntl,
+    "العنوان: "+addr
+  ];
+  return "https://wa.me/"+CFG.whatsapp+"?text="+encodeURIComponent(lines.join("\n"));
+}
+window.__buildOrder = buildOrderUrl;
+function syncToSheet(name, phoneIntl, addr, q){
+  if(!CFG.sheetsEndpoint) return;
+  try{
+    fetch(CFG.sheetsEndpoint,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name:name,phone:"+"+phoneIntl,address:addr,package:QTY_LABEL[q],sets:q,total:CFG.tiers[q]}),
+      keepalive:true}).catch(function(){});
+  }catch(e){}
+}
+
+/* draft persistence — returning visitors don't re-type (big for retargeted COD traffic) */
+const FIELDS=["name","phone","address"];
+try{
+  FIELDS.forEach(id=>{
+    const el=document.getElementById(id);
+    const v=localStorage.getItem("mx_"+id); if(v) el.value=v;
+    el.addEventListener("input",()=>{try{localStorage.setItem("mx_"+id,el.value);}catch(_){}});
+  });
+}catch(_){}
+
+/* mid-funnel signal: first touch on the form = ADD_CART (helps Snap build warm audiences) */
+let cartFired=false;
+document.getElementById("orderForm").addEventListener("focusin",function(){
+  if(cartFired) return; cartFired=true;
+  try{ if(window.snaptr){ snaptr('track','ADD_CART',{price:CFG.tiers[qty],currency:'QAR',number_items:qty}); } }catch(_){}
+});
+
+/* submit */
+document.getElementById("orderForm").addEventListener("submit",function(e){
+  e.preventDefault();
+  const name=document.getElementById("name").value.trim();
+  const phoneIntl=normalizePhone(document.getElementById("phone").value);
+  const addr=document.getElementById("address").value.trim();
+  let ok=true;
+  ok=setInvalid("f-name",!name)&&ok;
+  ok=setInvalid("f-phone",!phoneIntl)&&ok;
+  ok=setInvalid("f-addr",!addr)&&ok;
+  if(!ok){ document.querySelector(".invalid")?.scrollIntoView({behavior:"smooth",block:"center"}); return; }
+  const btn=document.getElementById("buyBtn");
+  btn.disabled=true; btn.style.opacity=".85";
+  btn.innerHTML='لحظة… نجهّز طلبج<small>بيفتح واتساب الحين</small>';
+  setTimeout(()=>{btn.disabled=false;btn.style.opacity="";refresh();},4000); /* restore if she comes back */
+  const url=buildOrderUrl(qty,name,phoneIntl,addr);
+  syncToSheet(name,phoneIntl,addr,qty);
+  const fb=document.getElementById("waFallback");
+  document.getElementById("waFallbackLink").href=url;
+  fb.classList.add("show");
+  try{ if(window.snaptr){ snaptr('track','PURCHASE',{price:CFG.tiers[qty],currency:'QAR',number_items:qty}); } }catch(_){}
+  window.location.href=url;
+});
+
+/* sticky bar: show after the buy button scrolls out of view */
+(function(){
+  const bar=document.getElementById("stickyBar"), btn=document.getElementById("buyBtn");
+  if("IntersectionObserver" in window){
+    new IntersectionObserver(en=>{ bar.classList.toggle("show", !en[0].isIntersecting); }).observe(btn);
+  }else{
+    bar.classList.add("show");
+  }
+})();
+
+/* WhatsApp links */
+const helpUrl="https://wa.me/"+CFG.whatsapp+"?text="+encodeURIComponent("مرحبا، عندي استفسار عن مجموعة mixsoon");
+document.getElementById("waHelp").href=helpUrl;
+document.getElementById("waFloat").href=helpUrl;
+document.getElementById("yr").textContent=new Date().getFullYear();
+</script>
+</body>
+</html>
