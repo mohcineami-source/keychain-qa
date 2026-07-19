@@ -88,6 +88,32 @@ async function appendRow(token, spreadsheetId, row) {
   });
 }
 
+/* Give the newly appended row its confirmed/delivered checkboxes.
+   NOTE: never pre-apply BOOLEAN validation to empty rows — it writes FALSE into
+   them, which makes values.append skip past them and hides real orders. */
+let _sheetIdCache = null;
+async function addCheckboxesToRow(token, spreadsheetId, updatedRange) {
+  const m = /!\w*?(\d+):/.exec(updatedRange || "");
+  if (!m) return;
+  const rowIndex = parseInt(m[1], 10) - 1; // 0-based
+  if (!(rowIndex >= 1)) return;
+  if (_sheetIdCache == null) {
+    const meta = await sheetsFetch(token, spreadsheetId + "?fields=" + encodeURIComponent("sheets(properties(sheetId,title))"));
+    const s = ((meta.data && meta.data.sheets) || []).find(function (x) {
+      return x.properties && x.properties.title === SHEET_TAB;
+    });
+    if (!s) return;
+    _sheetIdCache = s.properties.sheetId;
+  }
+  await sheetsFetch(token, spreadsheetId + ":batchUpdate", {
+    method: "POST",
+    body: { requests: [{ setDataValidation: {
+      range: { sheetId: _sheetIdCache, startRowIndex: rowIndex, endRowIndex: rowIndex + 1, startColumnIndex: 7, endColumnIndex: 9 },
+      rule: { condition: { type: "BOOLEAN" }, strict: true, showCustomUi: true },
+    } }] },
+  });
+}
+
 async function ensureTabAndHeader(token, spreadsheetId) {
   const meta = await sheetsFetch(token, spreadsheetId + "?fields=sheets.properties.title");
   const exists = ((meta.data && meta.data.sheets) || []).some(function (s) {
@@ -135,6 +161,12 @@ exports.handler = async function (event) {
       res = await appendRow(token, spreadsheetId, row);
     }
     if (!res.ok) throw new Error("append_failed_" + res.status);
+    /* best-effort: checkboxes on the new row. Must never fail the order. */
+    try {
+      await addCheckboxesToRow(token, spreadsheetId, res.data && res.data.updates && res.data.updates.updatedRange);
+    } catch (e) {
+      console.error("[mixsoon] checkbox decorate failed (order still saved):", e && e.message ? e.message : e);
+    }
     return json(200, { ok: true });
   } catch (err) {
     console.error("[mixsoon] Sheets append failed:", err && err.message ? err.message : err);
