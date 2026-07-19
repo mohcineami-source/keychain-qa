@@ -468,12 +468,21 @@ function buildOrderUrl(q,name,phoneIntl,addr){
 }
 window.__buildOrder = buildOrderUrl;
 function syncToSheet(name, phoneIntl, addr, q){
-  if(!CFG.sheetsEndpoint) return;
+  if(!CFG.sheetsEndpoint) return false;
+  var payload=JSON.stringify({name:name,phone:"+"+phoneIntl,address:addr,package:QTY_LABEL[q],sets:q,total:CFG.tiers[q]});
+  /* 1) sendBeacon: the ONLY transport the spec guarantees will still be sent while the
+     page is unloading / handing off to the WhatsApp app. Same-origin, so no CORS preflight. */
+  try{
+    if(navigator.sendBeacon){
+      if(navigator.sendBeacon(CFG.sheetsEndpoint, new Blob([payload],{type:"application/json"}))) return true;
+    }
+  }catch(_){}
+  /* 2) fallback for browsers without sendBeacon */
   try{
     fetch(CFG.sheetsEndpoint,{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({name:name,phone:"+"+phoneIntl,address:addr,package:QTY_LABEL[q],sets:q,total:CFG.tiers[q]}),
-      keepalive:true}).catch(function(){});
+      body:payload,keepalive:true}).catch(function(){});
   }catch(e){}
+  return false;
 }
 
 /* draft persistence — returning visitors don't re-type (big for retargeted COD traffic) */
@@ -509,12 +518,14 @@ document.getElementById("orderForm").addEventListener("submit",function(e){
   btn.innerHTML='لحظة… نجهّز طلبج<small>بيفتح واتساب الحين</small>';
   setTimeout(()=>{btn.disabled=false;btn.style.opacity="";refresh();},4000); /* restore if she comes back */
   const url=buildOrderUrl(qty,name,phoneIntl,addr);
-  syncToSheet(name,phoneIntl,addr,qty);
+  const beaconed=syncToSheet(name,phoneIntl,addr,qty);
   const fb=document.getElementById("waFallback");
   document.getElementById("waFallbackLink").href=url;
   fb.classList.add("show");
   try{ if(window.snaptr){ snaptr('track','PURCHASE',{price:CFG.tiers[qty],currency:'QAR',number_items:qty}); } }catch(_){}
-  window.location.href=url;
+  /* let the order request actually leave the device before we hand off to WhatsApp.
+     Imperceptible to her; the difference between a logged order and a lost one. */
+  setTimeout(function(){ window.location.href=url; }, beaconed ? 150 : 700);
 });
 
 /* sticky bar: show after the buy button scrolls out of view */
