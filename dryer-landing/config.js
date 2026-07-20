@@ -25,6 +25,12 @@ window.NADA_CONFIG = {
     "76e619d1-4e5c-4d87-ac66-1da62aae216d",
   ],
 
+  /* TikTok Pixel. Loads the pixel, fires PageView, then InitiateCheckout +
+     CompletePayment on order submit — the same points as the Snapchat events
+     above. Wrapped so a blocked/failed pixel can NEVER break the page,
+     WhatsApp, or the Snapchat pixel. Set to "" to disable. */
+  TIKTOK_PIXEL_ID: "CR1IO6JC77U9OU7LOMOG",
+
   /* Google Sheets order log via a Netlify Function (see netlify/functions/submit-order.js).
      Fire-and-forget: a failure here NEVER blocks or delays the WhatsApp handoff.
      Set to "" to disable entirely (e.g. while testing locally with no function deployed). */

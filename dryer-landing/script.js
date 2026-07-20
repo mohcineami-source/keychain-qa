@@ -158,18 +158,62 @@
       window.snaptr("track", "PAGE_VIEW");
     } catch (e) { /* swallow */ }
   }
-  function trackOrder(total) {
-    if (!window.snaptr) return;
-    // mirror keychain.qa: START_CHECKOUT on submit, then PURCHASE with the order value
-    try { window.snaptr("track", "START_CHECKOUT"); } catch (e) { /* swallow */ }
+  function loadTikTokPixel(id) {
+    if (!id) return;
     try {
-      window.snaptr("track", "PURCHASE", {
-        currency: "QAR",
-        price: total,
-        item_category: "portable clothes dryer",
-        description: "نشّافة نَدى المحمولة"
-      });
+      (function (w, d, t) {
+        w.TiktokAnalyticsObject = t;
+        var ttq = w[t] = w[t] || [];
+        ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie", "disableCookie", "holdConsent", "revokeConsent", "grantConsent"];
+        ttq.setAndDefer = function (obj, m) { obj[m] = function () { obj.push([m].concat(Array.prototype.slice.call(arguments, 0))); }; };
+        for (var i = 0; i < ttq.methods.length; i++) ttq.setAndDefer(ttq, ttq.methods[i]);
+        ttq.instance = function (n) { var e = ttq._i[n] || [], j; for (j = 0; j < ttq.methods.length; j++) ttq.setAndDefer(e, ttq.methods[j]); return e; };
+        ttq.load = function (e, n) {
+          var r = "https://analytics.tiktok.com/i18n/pixel/events.js";
+          ttq._i = ttq._i || {}; ttq._i[e] = []; ttq._i[e]._u = r;
+          ttq._t = ttq._t || {}; ttq._t[e] = +new Date();
+          ttq._o = ttq._o || {}; ttq._o[e] = n || {};
+          var s = d.createElement("script"); s.type = "text/javascript"; s.async = true;
+          s.src = r + "?sdkid=" + e + "&lib=" + t;
+          var a = d.getElementsByTagName("script")[0]; a.parentNode.insertBefore(s, a);
+        };
+        ttq.load(id);
+        ttq.page();
+      })(window, document, "ttq");
     } catch (e) { /* swallow */ }
+  }
+
+  /* Fires on order submit. Snapchat and TikTok are handled independently so a
+     blocked/failed pixel on one network can never stop the other (or checkout). */
+  function trackOrder(total, quantity) {
+    // Snapchat — mirror keychain.qa: START_CHECKOUT then PURCHASE with the order value
+    if (window.snaptr) {
+      try { window.snaptr("track", "START_CHECKOUT"); } catch (e) { /* swallow */ }
+      try {
+        window.snaptr("track", "PURCHASE", {
+          currency: "QAR",
+          price: total,
+          item_category: "portable clothes dryer",
+          description: "نشّافة نَدى المحمولة"
+        });
+      } catch (e) { /* swallow */ }
+    }
+    // TikTok — same two points: InitiateCheckout, then the conversion event
+    if (window.ttq && typeof window.ttq.track === "function") {
+      var props = {
+        value: total,
+        currency: "QAR",
+        contents: [{
+          content_id: "nada-portable-dryer",
+          content_type: "product",
+          content_name: "نشّافة نَدى المحمولة",
+          quantity: quantity,
+          price: PRICE
+        }]
+      };
+      try { window.ttq.track("InitiateCheckout", props); } catch (e) { /* swallow */ }
+      try { window.ttq.track("CompletePayment", props); } catch (e) { /* swallow */ }
+    }
   }
 
   /* ---------- Google Sheets order log (fire-and-forget, never blocks checkout) ---------- */
@@ -216,7 +260,7 @@
         return;
       }
       var total = PRICE * qty;
-      trackOrder(total);
+      trackOrder(total, qty);
       var opened = openWhatsApp(buildWaMessage(data));   // synchronous → keeps user gesture
       syncToSheet(data, total);
       if (opened) toast("تم، يفتح واتساب…");
@@ -287,6 +331,7 @@
     bindReveal();
     var snapIds = (CFG.SNAP_PIXEL_IDS && CFG.SNAP_PIXEL_IDS.length) ? CFG.SNAP_PIXEL_IDS : (CFG.SNAP_PIXEL_ID ? [CFG.SNAP_PIXEL_ID] : []);
     loadSnapPixels(snapIds);
+    loadTikTokPixel(CFG.TIKTOK_PIXEL_ID);
     if (!WA_NUMBER || WA_NUMBER.length < 8) {
       console.warn("[نَدى] WHATSAPP_NUMBER not set correctly in config.js - order/help buttons won't reach WhatsApp.");
     }
