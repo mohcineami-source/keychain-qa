@@ -25,7 +25,11 @@ const HEADER = [
    range to row 2000 — so values.append dropped new orders below row 2000.
    New orders are now inserted at row 2, and inserting inside these ranges
    makes Sheets grow them automatically, so they stay in sync with the data. */
-const ROW_BUFFER = 100; // spare grid rows kept under the data */
+/* Spare rows kept below the data, fully styled (stripes + checkboxes) so the
+   table looks ready for incoming orders instead of stopping at a blank void.
+   Safe now that orders INSERT at row 2 — pre-styled rows can no longer affect
+   where a new order lands, which was the whole original bug. */
+const READY_ROWS = 50;
 
 // --- brand palette (0..1 floats) -----------------------------------------
 const BRAND = { red: 0.7608, green: 0.3843, blue: 0.1804 }; // #C2622E terracotta
@@ -233,9 +237,9 @@ exports.handler = async function (event) {
       });
       if (has) lastDataRow = i + 1;
     }
-    const hasData = lastDataRow >= 2;
-    const endRow = lastDataRow; // exclusive 0-indexed end == 1-indexed last row
-    const newRowCount = Math.max(lastDataRow + ROW_BUFFER, 200);
+    // Grid ends right after the styled ready-rows, so there is no blank tail.
+    const newRowCount = lastDataRow + READY_ROWS;
+    const endRow = newRowCount; // style the data rows AND the ready rows
     const existingBandings = (sheet.bandedRanges || []).map(function (b) {
       return b.bandedRangeId;
     });
@@ -260,22 +264,29 @@ exports.handler = async function (event) {
 
     const requests = [];
 
-    // 3) Frozen header row and brand tab color.
+    /* 3) Grid size FIRST — later requests style rows that may not exist yet,
+       and a range past the grid is an error. Also sets the frozen header
+       row and the brand tab colour. */
     requests.push({
       updateSheetProperties: {
-        properties: { sheetId: sheetId, gridProperties: { frozenRowCount: 1 }, tabColor: BRAND },
-        fields: "gridProperties.frozenRowCount,tabColor",
+        properties: {
+          sheetId: sheetId,
+          gridProperties: { rowCount: newRowCount, frozenRowCount: 1 },
+          tabColor: BRAND,
+        },
+        fields: "gridProperties(rowCount,frozenRowCount),tabColor",
       },
     });
 
-    // Drop any leftover checkbox validation below the data (a rule with no
-    // condition removes it), so those cells stop reporting FALSE.
+    /* Reset checkbox validation across the whole styled area (a rule with no
+       condition removes it) before re-applying it below. endRowIndex must not
+       exceed the grid size we just set, or the request is out of range. */
     requests.push({
       setDataValidation: {
         range: {
           sheetId: sheetId,
           startRowIndex: 1,
-          endRowIndex: gridRows,
+          endRowIndex: newRowCount,
           startColumnIndex: 6,
           endColumnIndex: 8,
         },
@@ -327,7 +338,7 @@ exports.handler = async function (event) {
     /* Everything below is scoped to the real data rows. New orders are inserted
        at row 2, i.e. INSIDE these ranges, so Sheets extends them automatically
        and the design keeps applying without ever pre-filling empty rows. */
-    if (hasData) {
+    {
       /* 6) Zebra striping is a CONDITIONAL RULE, not banding. A real banded
          range is silently destroyed when a row is inserted at its first row —
          which is exactly what every new order does. Conditional ranges survive
@@ -415,13 +426,6 @@ exports.handler = async function (event) {
       });
     }
 
-    // 12) Trim the grid so Ctrl+End lands just past the real data.
-    requests.push({
-      updateSheetProperties: {
-        properties: { sheetId: sheetId, gridProperties: { rowCount: newRowCount } },
-        fields: "gridProperties.rowCount",
-      },
-    });
 
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: spreadsheetId,
@@ -434,7 +438,8 @@ exports.handler = async function (event) {
       applied: requests.length,
       lastDataRow: lastDataRow,
       orderRows: Math.max(0, lastDataRow - 1),
-      clearedBelowRow: lastDataRow,
+      styledThroughRow: endRow,
+      readyRows: READY_ROWS,
       newRowCount: newRowCount,
     });
   } catch (err) {
