@@ -113,9 +113,14 @@ exports.handler = async function (event) {
     if (mode === "inspect") return json(200, report);
 
     // --- apply: newest first, compacted directly under the header ---
+    // Optional narrow deletion: drop rows whose customer_name matches exactly.
+    const dropName = typeof body.dropExactName === "string" ? body.dropExactName : null;
     const sorted = found
       .map(function (f) {
         return f.values;
+      })
+      .filter(function (r) {
+        return dropName === null || String(r[1]) !== dropName;
       })
       .sort(function (a, b) {
         return String(b[0]).localeCompare(String(a[0])); // ISO timestamps: desc
