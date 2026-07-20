@@ -328,15 +328,11 @@ exports.handler = async function (event) {
        at row 2, i.e. INSIDE these ranges, so Sheets extends them automatically
        and the design keeps applying without ever pre-filling empty rows. */
     if (hasData) {
-      // 6) Zebra banding on the data rows only (header keeps its brand style).
-      requests.push({
-        addBanding: {
-          bandedRange: {
-            range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: endRow, startColumnIndex: 0, endColumnIndex: 8 },
-            rowProperties: { firstBandColor: WHITE, secondBandColor: BAND2 },
-          },
-        },
-      });
+      /* 6) Zebra striping is a CONDITIONAL RULE, not banding. A real banded
+         range is silently destroyed when a row is inserted at its first row —
+         which is exactly what every new order does. Conditional ranges survive
+         and auto-expand, so striping stays correct forever. Added last (lowest
+         priority) so the confirmed/delivered colors win over it. */
 
       // 7) Center quantity.
       requests.push({
@@ -400,6 +396,19 @@ exports.handler = async function (event) {
             booleanRule: {
               condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=$G2=TRUE" }] },
               format: { backgroundColor: AMBER },
+            },
+          },
+        },
+      });
+      // Zebra stripe, lowest priority — only paints rows no status colour claimed.
+      requests.push({
+        addConditionalFormatRule: {
+          index: 2,
+          rule: {
+            ranges: [rowRange],
+            booleanRule: {
+              condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=ISEVEN(ROW())" }] },
+              format: { backgroundColor: BAND2 },
             },
           },
         },
