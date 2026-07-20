@@ -89,6 +89,98 @@ async function ensureTabExists(sheets, spreadsheetId, meta) {
   });
 }
 
+function r1(range) {
+  // 0-indexed half-open API range -> readable 1-indexed inclusive rows.
+  if (!range) return null;
+  const start = (range.startRowIndex || 0) + 1;
+  const end = range.endRowIndex || 0;
+  return "rows " + start + "-" + end;
+}
+
+/* Structure-only report: proves the checkbox validation, banding and row
+   highlighting actually cover the live data rows. Returns no cell contents. */
+async function inspect(sheets, spreadsheetId) {
+  const meta = await sheets.spreadsheets.get({
+    spreadsheetId: spreadsheetId,
+    ranges: [SHEET_TAB + "!G2:H2"],
+    includeGridData: true,
+    fields:
+      "sheets(properties(sheetId,title,gridProperties(rowCount)),bandedRanges(range),conditionalFormats(ranges),data(rowData(values(dataValidation(condition(type))))))",
+  });
+  const sheet = (meta.data.sheets || [])[0] || {};
+  const props = sheet.properties || {};
+  const cells =
+    ((((sheet.data || [])[0] || {}).rowData || [])[0] || {}).values || [];
+
+  return {
+    ok: true,
+    mode: "inspect",
+    gridRowCount: (props.gridProperties || {}).rowCount || null,
+    // Does the NEXT order's row (row 2) already carry real checkboxes?
+    row2Checkboxes: cells.map(function (c) {
+      return c && c.dataValidation && c.dataValidation.condition
+        ? c.dataValidation.condition.type
+        : null;
+    }),
+    bandingCovers: (sheet.bandedRanges || []).map(function (b) {
+      return r1(b.range);
+    }),
+    highlightCovers: (sheet.conditionalFormats || []).reduce(function (acc, cf) {
+      (cf.ranges || []).forEach(function (rg) {
+        acc.push(r1(rg));
+      });
+      return acc;
+    }, []),
+  };
+}
+
+/* Remove leftover verification rows. Only touches customer_name values that
+   start with "TEST-", and reports counts only. */
+async function dropTestRows(sheets, spreadsheetId) {
+  const sheetId = await (async function () {
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: spreadsheetId,
+      fields: "sheets(properties(sheetId,title))",
+    });
+    const s = (meta.data.sheets || []).find(function (x) {
+      return x.properties && x.properties.title === SHEET_TAB;
+    });
+    return s ? s.properties.sheetId : null;
+  })();
+  if (sheetId === null) return { ok: false, error: "tab_missing" };
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: spreadsheetId,
+    range: SHEET_TAB + "!B1:B",
+  });
+  const names = res.data.values || [];
+  const victims = [];
+  for (let i = 1; i < names.length; i++) {
+    const name = String((names[i] || [])[0] || "");
+    if (name.indexOf("TEST-") === 0) victims.push(i); // 0-indexed sheet row
+  }
+  if (victims.length) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: spreadsheetId,
+      requestBody: {
+        requests: victims
+          .slice()
+          .sort(function (a, b) {
+            return b - a; // delete bottom-up so indices stay valid
+          })
+          .map(function (idx) {
+            return {
+              deleteDimension: {
+                range: { sheetId: sheetId, dimension: "ROWS", startIndex: idx, endIndex: idx + 1 },
+              },
+            };
+          }),
+      },
+    });
+  }
+  return { ok: true, mode: "dropTestRows", deleted: victims.length };
+}
+
 exports.handler = async function (event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: corsHeaders(), body: "" };
   if (event.httpMethod !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
@@ -96,8 +188,23 @@ exports.handler = async function (event) {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
   if (!spreadsheetId) return json(500, { ok: false, error: "sheet_not_configured" });
 
+  let body = {};
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch (e) {
+    body = {};
+  }
+
   try {
     const sheets = getSheetsClient();
+
+    /* mode:"inspect" — structure only. Deliberately returns NO cell values, so
+       this endpoint can never leak customer names/phones/addresses. */
+    if (body.mode === "inspect") return json(200, await inspect(sheets, spreadsheetId));
+
+    /* dropTestRows — deletes rows whose customer_name starts with "TEST-".
+       Hard-limited to that prefix so it can never remove a real order. */
+    if (body.dropTestRows === true) return json(200, await dropTestRows(sheets, spreadsheetId));
 
     const meta = await sheets.spreadsheets.get({
       spreadsheetId: spreadsheetId,
