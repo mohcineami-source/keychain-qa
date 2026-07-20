@@ -7,7 +7,19 @@
 const { google } = require("googleapis");
 
 const SHEET_TAB = process.env.GOOGLE_SHEET_TAB || "Orders";
-const HEADER = ["timestamp", "customer_name", "phone", "address", "quantity", "total_qar"];
+const HEADER = [
+  "timestamp",
+  "customer_name",
+  "phone",
+  "address",
+  "quantity",
+  "total_qar",
+  "confirmed",
+  "delivered",
+];
+
+// Cached across warm invocations — the numeric sheetId never changes.
+let cachedSheetId = null;
 
 function corsHeaders() {
   return {
@@ -41,22 +53,69 @@ function getSheetsClient() {
   return google.sheets({ version: "v4", auth: auth });
 }
 
-async function ensureTabAndHeader(sheets, spreadsheetId) {
-  const meta = await sheets.spreadsheets.get({ spreadsheetId: spreadsheetId });
-  const exists = (meta.data.sheets || []).some(function (s) {
+async function findSheetId(sheets, spreadsheetId) {
+  const meta = await sheets.spreadsheets.get({
+    spreadsheetId: spreadsheetId,
+    fields: "sheets(properties(sheetId,title))",
+  });
+  const sheet = (meta.data.sheets || []).find(function (s) {
     return s.properties && s.properties.title === SHEET_TAB;
   });
-  if (!exists) {
-    await sheets.spreadsheets.batchUpdate({
+  return sheet ? sheet.properties.sheetId : null;
+}
+
+async function ensureTabAndHeader(sheets, spreadsheetId) {
+  let sheetId = await findSheetId(sheets, spreadsheetId);
+  if (sheetId === null) {
+    const created = await sheets.spreadsheets.batchUpdate({
       spreadsheetId: spreadsheetId,
       requestBody: { requests: [{ addSheet: { properties: { title: SHEET_TAB } } }] },
     });
+    sheetId = created.data.replies[0].addSheet.properties.sheetId;
   }
   await sheets.spreadsheets.values.update({
     spreadsheetId: spreadsheetId,
-    range: SHEET_TAB + "!A1:F1",
+    range: SHEET_TAB + "!A1:H1",
     valueInputOption: "RAW",
     requestBody: { values: [HEADER] },
+  });
+  return sheetId;
+}
+
+function cell(value) {
+  if (typeof value === "number") return { userEnteredValue: { numberValue: value } };
+  if (typeof value === "boolean") return { userEnteredValue: { boolValue: value } };
+  return { userEnteredValue: { stringValue: String(value) } };
+}
+
+/* Insert the order as a NEW ROW 2, directly under the header, so the newest
+   lead is always the first thing you see. This also avoids values.append,
+   whose table detection could place rows far below the real data (it counts
+   the validation/banding we apply down the sheet as part of the table).
+   insertDimension + updateCells go in ONE batchUpdate so a partial failure
+   can never leave an empty row behind. inheritFromBefore:false makes the new
+   row copy the data row below it (checkbox validation, banding) instead of
+   the header's styling. */
+async function insertOrderRow(sheets, spreadsheetId, sheetId, row) {
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          insertDimension: {
+            range: { sheetId: sheetId, dimension: "ROWS", startIndex: 1, endIndex: 2 },
+            inheritFromBefore: false,
+          },
+        },
+        {
+          updateCells: {
+            start: { sheetId: sheetId, rowIndex: 1, columnIndex: 0 },
+            rows: [{ values: row.map(cell) }],
+            fields: "userEnteredValue",
+          },
+        },
+      ],
+    },
   });
 }
 
@@ -82,29 +141,19 @@ exports.handler = async function (event) {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
   if (!spreadsheetId) return json(500, { ok: false, error: "sheet_not_configured" });
 
-  const row = [new Date().toISOString(), name, phone, address, qty, total];
+  // confirmed + delivered start unchecked so the new row renders its checkboxes.
+  const row = [new Date().toISOString(), name, phone, address, qty, total, false, false];
 
   try {
     const sheets = getSheetsClient();
     try {
-      // Fast path: the tab already exists — one API call.
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: spreadsheetId,
-        range: SHEET_TAB + "!A:F",
-        valueInputOption: "USER_ENTERED",
-        insertDataOption: "INSERT_ROWS",
-        requestBody: { values: [row] },
-      });
-    } catch (appendErr) {
-      // Likely first run: the tab/header doesn't exist yet. Create it once, then retry.
-      await ensureTabAndHeader(sheets, spreadsheetId);
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: spreadsheetId,
-        range: SHEET_TAB + "!A:F",
-        valueInputOption: "USER_ENTERED",
-        insertDataOption: "INSERT_ROWS",
-        requestBody: { values: [row] },
-      });
+      if (cachedSheetId === null) cachedSheetId = await findSheetId(sheets, spreadsheetId);
+      if (cachedSheetId === null) throw new Error("tab_missing");
+      await insertOrderRow(sheets, spreadsheetId, cachedSheetId, row);
+    } catch (firstErr) {
+      // Tab missing/renamed, or a stale cached id. Rebuild it once, then retry.
+      cachedSheetId = await ensureTabAndHeader(sheets, spreadsheetId);
+      await insertOrderRow(sheets, spreadsheetId, cachedSheetId, row);
     }
     return json(200, { ok: true });
   } catch (err) {
