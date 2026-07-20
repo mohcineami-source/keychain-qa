@@ -19,7 +19,13 @@ const HEADER = [
   "confirmed",
   "delivered",
 ];
-const LAST_ROW = 2000; // format this many rows so future orders inherit the design
+/* Everything below the header is bounded to the ACTUAL data rows.
+   Original bug: applying checkbox validation down to a fixed row 2000 put a
+   FALSE value in every one of those cells, which extended the sheet's data
+   range to row 2000 — so values.append dropped new orders below row 2000.
+   New orders are now inserted at row 2, and inserting inside these ranges
+   makes Sheets grow them automatically, so they stay in sync with the data. */
+const ROW_BUFFER = 100; // spare grid rows kept under the data */
 
 // --- brand palette (0..1 floats) -----------------------------------------
 const BRAND = { red: 0.7608, green: 0.3843, blue: 0.1804 }; // #C2622E terracotta
@@ -95,10 +101,34 @@ exports.handler = async function (event) {
 
     const meta = await sheets.spreadsheets.get({
       spreadsheetId: spreadsheetId,
-      fields: "sheets(properties(sheetId,title),bandedRanges(bandedRangeId),conditionalFormats)",
+      fields:
+        "sheets(properties(sheetId,title,gridProperties(rowCount)),bandedRanges(bandedRangeId),conditionalFormats)",
     });
     const sheet = await ensureTabExists(sheets, spreadsheetId, meta);
     const sheetId = sheet.properties.sheetId;
+    const gridRows =
+      (sheet.properties.gridProperties && sheet.properties.gridProperties.rowCount) || 1000;
+
+    /* Find the last row holding a REAL order. Columns A-F only: G/H are the
+       checkbox columns and read back as FALSE even when nothing was ticked,
+       so counting them would re-create the phantom-rows bug. */
+    const valsRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: spreadsheetId,
+      range: SHEET_TAB + "!A1:F" + gridRows,
+      valueRenderOption: "UNFORMATTED_VALUE",
+    });
+    const vals = valsRes.data.values || [];
+    let lastDataRow = 1; // header only
+    for (let i = 1; i < vals.length; i++) {
+      const row = vals[i] || [];
+      const has = row.some(function (c) {
+        return String(c === null || c === undefined ? "" : c).trim() !== "";
+      });
+      if (has) lastDataRow = i + 1;
+    }
+    const hasData = lastDataRow >= 2;
+    const endRow = lastDataRow; // exclusive 0-indexed end == 1-indexed last row
+    const newRowCount = Math.max(lastDataRow + ROW_BUFFER, 200);
     const existingBandings = (sheet.bandedRanges || []).map(function (b) {
       return b.bandedRangeId;
     });
@@ -112,17 +142,36 @@ exports.handler = async function (event) {
       requestBody: { values: [HEADER] },
     });
 
+    // 2) Wipe every value below the real data — this is what clears the phantom
+    //    FALSE checkbox cells that made the sheet look 2000 rows long.
+    if (gridRows > lastDataRow) {
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId: spreadsheetId,
+        range: SHEET_TAB + "!A" + (lastDataRow + 1) + ":H" + gridRows,
+      });
+    }
+
     const requests = [];
 
-    // 2) Grid size, frozen header row, brand tab color.
+    // 3) Frozen header row and brand tab color.
     requests.push({
       updateSheetProperties: {
-        properties: {
+        properties: { sheetId: sheetId, gridProperties: { frozenRowCount: 1 }, tabColor: BRAND },
+        fields: "gridProperties.frozenRowCount,tabColor",
+      },
+    });
+
+    // Drop any leftover checkbox validation below the data (a rule with no
+    // condition removes it), so those cells stop reporting FALSE.
+    requests.push({
+      setDataValidation: {
+        range: {
           sheetId: sheetId,
-          gridProperties: { rowCount: LAST_ROW, frozenRowCount: 1 },
-          tabColor: BRAND,
+          startRowIndex: 1,
+          endRowIndex: gridRows,
+          startColumnIndex: 6,
+          endColumnIndex: 8,
         },
-        fields: "gridProperties(rowCount,frozenRowCount),tabColor",
       },
     });
 
@@ -168,80 +217,93 @@ exports.handler = async function (event) {
     requests.push(col(6, 7, sheetId, 120)); // confirmed
     requests.push(col(7, 8, sheetId, 120)); // delivered
 
-    // 6) Zebra banding on the data rows only (header keeps its brand style).
-    requests.push({
-      addBanding: {
-        bandedRange: {
-          range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: LAST_ROW, startColumnIndex: 0, endColumnIndex: 8 },
-          rowProperties: { firstBandColor: WHITE, secondBandColor: BAND2 },
-        },
-      },
-    });
-
-    // 7) Center quantity.
-    requests.push({
-      repeatCell: {
-        range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: LAST_ROW, startColumnIndex: 4, endColumnIndex: 5 },
-        cell: { userEnteredFormat: { horizontalAlignment: "CENTER" } },
-        fields: "userEnteredFormat.horizontalAlignment",
-      },
-    });
-    // 8) total_qar: bold, centered, "1,234 QAR".
-    requests.push({
-      repeatCell: {
-        range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: LAST_ROW, startColumnIndex: 5, endColumnIndex: 6 },
-        cell: {
-          userEnteredFormat: {
-            horizontalAlignment: "CENTER",
-            textFormat: { bold: true },
-            numberFormat: { type: "NUMBER", pattern: '#,##0" QAR"' },
+    /* Everything below is scoped to the real data rows. New orders are inserted
+       at row 2, i.e. INSIDE these ranges, so Sheets extends them automatically
+       and the design keeps applying without ever pre-filling empty rows. */
+    if (hasData) {
+      // 6) Zebra banding on the data rows only (header keeps its brand style).
+      requests.push({
+        addBanding: {
+          bandedRange: {
+            range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: endRow, startColumnIndex: 0, endColumnIndex: 8 },
+            rowProperties: { firstBandColor: WHITE, secondBandColor: BAND2 },
           },
         },
-        fields: "userEnteredFormat(horizontalAlignment,textFormat,numberFormat)",
-      },
-    });
-    // 9) Center the two checkbox columns.
-    requests.push({
-      repeatCell: {
-        range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: LAST_ROW, startColumnIndex: 6, endColumnIndex: 8 },
-        cell: { userEnteredFormat: { horizontalAlignment: "CENTER" } },
-        fields: "userEnteredFormat.horizontalAlignment",
-      },
-    });
+      });
 
-    // 10) Checkbox ("button") validation on confirmed + delivered.
-    requests.push({
-      setDataValidation: {
-        range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: LAST_ROW, startColumnIndex: 6, endColumnIndex: 8 },
-        rule: { condition: { type: "BOOLEAN" }, strict: true, showCustomUi: true },
-      },
-    });
+      // 7) Center quantity.
+      requests.push({
+        repeatCell: {
+          range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: endRow, startColumnIndex: 4, endColumnIndex: 5 },
+          cell: { userEnteredFormat: { horizontalAlignment: "CENTER" } },
+          fields: "userEnteredFormat.horizontalAlignment",
+        },
+      });
+      // 8) total_qar: bold, centered, "1,234 QAR".
+      requests.push({
+        repeatCell: {
+          range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: endRow, startColumnIndex: 5, endColumnIndex: 6 },
+          cell: {
+            userEnteredFormat: {
+              horizontalAlignment: "CENTER",
+              textFormat: { bold: true },
+              numberFormat: { type: "NUMBER", pattern: '#,##0" QAR"' },
+            },
+          },
+          fields: "userEnteredFormat(horizontalAlignment,textFormat,numberFormat)",
+        },
+      });
+      // 9) Center the two checkbox columns.
+      requests.push({
+        repeatCell: {
+          range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: endRow, startColumnIndex: 6, endColumnIndex: 8 },
+          cell: { userEnteredFormat: { horizontalAlignment: "CENTER" } },
+          fields: "userEnteredFormat.horizontalAlignment",
+        },
+      });
 
-    // 11) Row highlight. First matching rule wins, so Delivered (green)
-    //     is added before Confirmed (amber): a delivered+confirmed row shows green.
-    const rowRange = { sheetId: sheetId, startRowIndex: 1, endRowIndex: LAST_ROW, startColumnIndex: 0, endColumnIndex: 8 };
-    requests.push({
-      addConditionalFormatRule: {
-        index: 0,
-        rule: {
-          ranges: [rowRange],
-          booleanRule: {
-            condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=$H2=TRUE" }] },
-            format: { backgroundColor: GREEN },
+      // 10) Checkbox ("button") validation on confirmed + delivered.
+      requests.push({
+        setDataValidation: {
+          range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: endRow, startColumnIndex: 6, endColumnIndex: 8 },
+          rule: { condition: { type: "BOOLEAN" }, strict: true, showCustomUi: true },
+        },
+      });
+
+      // 11) Row highlight. First matching rule wins, so Delivered (green)
+      //     is added before Confirmed (amber): a delivered+confirmed row shows green.
+      const rowRange = { sheetId: sheetId, startRowIndex: 1, endRowIndex: endRow, startColumnIndex: 0, endColumnIndex: 8 };
+      requests.push({
+        addConditionalFormatRule: {
+          index: 0,
+          rule: {
+            ranges: [rowRange],
+            booleanRule: {
+              condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=$H2=TRUE" }] },
+              format: { backgroundColor: GREEN },
+            },
           },
         },
-      },
-    });
-    requests.push({
-      addConditionalFormatRule: {
-        index: 1,
-        rule: {
-          ranges: [rowRange],
-          booleanRule: {
-            condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=$G2=TRUE" }] },
-            format: { backgroundColor: AMBER },
+      });
+      requests.push({
+        addConditionalFormatRule: {
+          index: 1,
+          rule: {
+            ranges: [rowRange],
+            booleanRule: {
+              condition: { type: "CUSTOM_FORMULA", values: [{ userEnteredValue: "=$G2=TRUE" }] },
+              format: { backgroundColor: AMBER },
+            },
           },
         },
+      });
+    }
+
+    // 12) Trim the grid so Ctrl+End lands just past the real data.
+    requests.push({
+      updateSheetProperties: {
+        properties: { sheetId: sheetId, gridProperties: { rowCount: newRowCount } },
+        fields: "gridProperties.rowCount",
       },
     });
 
@@ -250,7 +312,15 @@ exports.handler = async function (event) {
       requestBody: { requests: requests },
     });
 
-    return json(200, { ok: true, sheetId: sheetId, applied: requests.length });
+    return json(200, {
+      ok: true,
+      sheetId: sheetId,
+      applied: requests.length,
+      lastDataRow: lastDataRow,
+      orderRows: Math.max(0, lastDataRow - 1),
+      clearedBelowRow: lastDataRow,
+      newRowCount: newRowCount,
+    });
   } catch (err) {
     console.error("[نَدى] Google Sheets format failed:", err && err.message ? err.message : err);
     return json(500, { ok: false, error: "format_error", detail: err && err.message ? err.message : String(err) });
