@@ -186,6 +186,14 @@ u.parentNode.insertBefore(r,u);})(window,document,"https://sc-static.net/scevent
 snaptr("init","8aebb720-6161-4982-a60e-2d14817db185");
 snaptr("track","PAGE_VIEW");
 </script>
+
+<!-- TikTok Pixel -->
+<script>
+!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=d.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=d.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+  ttq.load("CR1IO6JC77U9OU7LOMOG");
+  ttq.page();
+}(window,document,"ttq");
+</script>
 </head>
 <body>
 
@@ -500,6 +508,7 @@ let cartFired=false;
 document.getElementById("orderForm").addEventListener("focusin",function(){
   if(cartFired) return; cartFired=true;
   try{ if(window.snaptr){ snaptr('track','ADD_CART',{price:CFG.tiers[qty],currency:'QAR',number_items:qty}); } }catch(_){}
+  try{ if(window.ttq){ ttq.track('AddToCart',{content_type:'product',content_name:CFG.productName,quantity:qty,value:CFG.tiers[qty],currency:'QAR'}); } }catch(_){}
 });
 
 /* submit */
@@ -523,6 +532,7 @@ document.getElementById("orderForm").addEventListener("submit",function(e){
   document.getElementById("waFallbackLink").href=url;
   fb.classList.add("show");
   try{ if(window.snaptr){ snaptr('track','PURCHASE',{price:CFG.tiers[qty],currency:'QAR',number_items:qty}); } }catch(_){}
+  try{ if(window.ttq){ ttq.track('CompletePayment',{content_type:'product',content_name:CFG.productName,quantity:qty,value:CFG.tiers[qty],currency:'QAR'}); } }catch(_){}
   /* let the order request actually leave the device before we hand off to WhatsApp.
      Imperceptible to her; the difference between a logged order and a lost one. */
   setTimeout(function(){ window.location.href=url; }, beaconed ? 150 : 700);
