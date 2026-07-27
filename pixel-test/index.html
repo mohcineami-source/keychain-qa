@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
-<title>Snap Pixel Test Harness</title>
+<title>Pixel Test Harness — Snapchat + TikTok</title>
 <link rel="icon" href="data:," />
 <style>
   :root {
@@ -14,6 +14,7 @@
     --text: #e6e9ef;
     --muted: #8b93a3;
     --accent: #fffc00;
+    --tt: #25f4ee;
     --ok: #22c55e;
     --err: #ef4444;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -55,7 +56,12 @@
     margin: 0 0 14px;
     font-weight: 600;
   }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+  .field + .field { margin-top: 18px; }
+  label { display: block; font-size: 13px; margin: 0 0 6px; }
+  label .tag { font-weight: 700; }
+  label .tag.snap { color: var(--accent); }
+  label .tag.tt { color: var(--tt); }
+  label .sm { color: var(--muted); font-weight: 400; }
   textarea, input[type="text"], input[type="number"] {
     width: 100%;
     background: #0b0d11;
@@ -66,9 +72,9 @@
     font-size: 13px;
     padding: 10px 12px;
   }
-  textarea { resize: vertical; min-height: 92px; }
+  textarea { resize: vertical; min-height: 70px; }
   textarea:focus, input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
-  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 18px; }
   .actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   button {
     background: var(--accent);
@@ -84,17 +90,19 @@
   button.secondary { background: #2a303c; color: var(--text); }
   button:hover { filter: brightness(.93); }
   button:disabled { opacity: .45; cursor: not-allowed; }
-  .log { list-style: none; padding: 0; margin: 0; font-family: var(--mono); font-size: 13px; max-height: 320px; overflow-y: auto; }
+  .log { list-style: none; padding: 0; margin: 0; font-family: var(--mono); font-size: 13px; max-height: 340px; overflow-y: auto; }
   .log li { padding: 7px 0; border-bottom: 1px solid var(--border); }
   .log li:last-child { border-bottom: 0; }
   .log .empty { color: var(--muted); font-style: italic; }
   .t { color: var(--muted); margin-right: 10px; }
   .ok { color: var(--ok); }
   .err { color: var(--err); }
+  .tag-snap { color: var(--accent); }
+  .tag-tt { color: var(--tt); }
   code { font-family: var(--mono); background: #0b0d11; padding: 1px 5px; border-radius: 4px; font-size: .9em; }
   .note { font-size: 13px; color: var(--muted); }
   .note strong { color: var(--text); }
-  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 16px; }
   .pill {
     display: inline-block;
     font-family: var(--mono);
@@ -111,34 +119,43 @@
 <body>
 <div class="wrap">
 
-  <div class="banner">⚠ TEST PAGE — FIRES REAL PURCHASE EVENTS AT WHATEVER PIXEL YOU ENTER</div>
+  <div class="banner">⚠ TEST PAGE — FIRES REAL PURCHASE EVENTS AT WHATEVER PIXELS YOU ENTER</div>
 
-  <h1>Snap Pixel Test Harness</h1>
-  <p class="sub">Enter one or more Snap Pixel IDs, then fire <code>PURCHASE</code> at all of them. Use it to confirm events reach Snap Events Manager, then take the page down.</p>
+  <h1>Pixel Test Harness</h1>
+  <p class="sub">Enter Snapchat and/or TikTok pixel IDs, then fire a purchase at all of them. Snapchat gets a <code>PURCHASE</code> event; TikTok gets <code>CompletePayment</code>. Use it to confirm events reach the pixels' dashboards, then take the page down.</p>
 
   <div class="card">
     <h2>Pixels</h2>
-    <label for="pixels">Pixel IDs — one per line, or comma-separated</label>
-    <textarea id="pixels" spellcheck="false" placeholder="ab4c0065-91ac-4037-9e92-d680d086983a&#10;8aebb720-6161-4982-a60e-2d14817db185"></textarea>
-    <div class="hint" id="parsed"></div>
+
+    <div class="field">
+      <label><span class="tag snap">Snapchat</span> <span class="sm">— UUID format, one per line or comma-separated</span></label>
+      <textarea id="snap" spellcheck="false" placeholder="ab4c0065-91ac-4037-9e92-d680d086983a"></textarea>
+      <div class="hint" id="snap-parsed"></div>
+    </div>
+
+    <div class="field">
+      <label><span class="tag tt">TikTok</span> <span class="sm">— 20-char ID like CR1IO6JC77U9OU7LOMOG, one per line or comma-separated</span></label>
+      <textarea id="tiktok" spellcheck="false" placeholder="CR1IO6JC77U9OU7LOMOG"></textarea>
+      <div class="hint" id="tiktok-parsed"></div>
+    </div>
 
     <div class="row">
       <div>
-        <label for="price">Price</label>
+        <label>Price</label>
         <input type="text" id="price" value="1.00" spellcheck="false" />
       </div>
       <div>
-        <label for="currency">Currency</label>
+        <label>Currency</label>
         <input type="text" id="currency" value="USD" spellcheck="false" />
       </div>
       <div>
-        <label for="count">Purchases per pixel</label>
+        <label>Purchases per pixel</label>
         <input type="number" id="count" value="1" min="1" max="20" />
       </div>
     </div>
 
     <div class="actions">
-      <button id="fire">Fire PURCHASE</button>
+      <button id="fire">Fire purchase</button>
       <button id="refire" class="secondary" disabled>Fire again</button>
       <button id="clear" class="secondary">Clear log</button>
     </div>
@@ -153,39 +170,42 @@
   <div class="card">
     <h2>How it works</h2>
     <p class="note" style="margin-top:0">
-      Snap's library fires <code>track</code> at every pixel that has been <code>init</code>-ed on the page. To keep
-      that predictable, changing the pixel list reloads the page with a clean state so events only go to the IDs
-      currently listed — no leftovers from a previous set. <strong>Fire again</strong> re-fires at the current set
-      without reloading.
+      Both SDKs fire at every pixel loaded on the page and offer no way to un-load one, so changing
+      either list reloads the page with a clean state — events only go to the IDs currently listed.
+      <strong>Fire again</strong> re-fires at the current set without reloading.
     </p>
     <p class="note" style="margin-bottom:0">
-      Every fire gets a fresh <code>transaction_id</code>, so Snap logs each as a distinct purchase rather than
-      deduping them into one.
+      One fire sends the same id to every pixel (one purchase, reported to several) as Snap's
+      <code>transaction_id</code> and TikTok's <code>event_id</code>. Each fire gets a fresh id, so
+      repeats log as distinct purchases instead of being deduped.
     </p>
   </div>
 
   <div class="card">
     <h2>Query string</h2>
     <p class="note" style="margin-top:0">
-      <code>?pixel=</code> comma-separated IDs &middot;
+      <code>?snap=</code> Snap IDs &middot;
+      <code>?tiktok=</code> TikTok IDs &middot;
       <code>?price=</code> value &middot;
       <code>?currency=</code> ISO code &middot;
-      <code>?count=</code> purchases per pixel &middot;
-      <code>?auto=0</code> fill the form but don't fire on load
+      <code>?count=</code> per pixel &middot;
+      <code>?auto=0</code> fill but don't fire on load
+      <br><span class="sm" style="color:var(--muted)">(<code>?pixel=</code> still works as an alias for <code>?snap=</code>.)</span>
     </p>
     <p class="note" style="margin-bottom:0">
-      Loading with <code>?pixel=…</code> fires on page load, so the URL alone is a working test. Without it, the page
-      just waits for the form. Your last-used values are remembered in this browser.
+      A URL with <code>?snap=</code> or <code>?tiktok=</code> fires on load, so the link alone is a
+      working test. Without them, the page just waits for the form. Last-used values are remembered in
+      this browser.
     </p>
   </div>
 
   <div class="card">
     <h2>Before you point ads at anything</h2>
     <p class="note" style="margin:0">
-      <strong>Take this page down once the pixel is verified.</strong> While it's live, every visitor is reported to
-      Snap as a completed purchase on whatever pixels are in the URL — that trains the optimizer on fake conversions
-      and inflates the purchase count in Ads Manager. Only ever point it at a pixel you own. It's a bench tool, not
-      something to leave on a domain that receives traffic.
+      <strong>Take this page down once the pixels are verified.</strong> While it's live, every
+      visitor is reported as a completed purchase on whatever pixels are in the URL — that trains the
+      optimizer on fake conversions and inflates the purchase count in Ads Manager. Only ever point it
+      at pixels you own. It's a bench tool, not something to leave on a domain that receives traffic.
     </p>
   </div>
 
@@ -193,11 +213,13 @@
 
 <script>
 (function () {
-  var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  var LS_KEY = "snap-pixel-test:last";
+  var SNAP_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  var TT_RE = /^[A-Z0-9]{16,24}$/i;
+  var LS_KEY = "pixel-test:last";
 
   var els = {
-    pixels: document.getElementById("pixels"),
+    snap: document.getElementById("snap"),
+    tiktok: document.getElementById("tiktok"),
     price: document.getElementById("price"),
     currency: document.getElementById("currency"),
     count: document.getElementById("count"),
@@ -205,120 +227,188 @@
     refire: document.getElementById("refire"),
     clear: document.getElementById("clear"),
     log: document.getElementById("log"),
-    parsed: document.getElementById("parsed"),
+    snapParsed: document.getElementById("snap-parsed"),
+    tiktokParsed: document.getElementById("tiktok-parsed"),
     state: document.getElementById("state")
   };
 
   // ---- logging ---------------------------------------------------------
-  function log(msg, cls) {
+  function log(tag, msg, cls) {
     var empty = els.log.querySelector(".empty");
     if (empty) empty.remove();
     var li = document.createElement("li");
     var t = document.createElement("span");
     t.className = "t";
     t.textContent = new Date().toLocaleTimeString();
+    li.appendChild(t);
+    if (tag) {
+      var g = document.createElement("span");
+      g.className = tag === "snap" ? "tag-snap" : "tag-tt";
+      g.textContent = (tag === "snap" ? "snap   " : "tiktok ");
+      li.appendChild(g);
+    }
     var m = document.createElement("span");
     if (cls) m.className = cls;
     m.textContent = msg;
-    li.appendChild(t);
     li.appendChild(m);
     els.log.appendChild(li);
     els.log.scrollTop = els.log.scrollHeight;
   }
 
   // ---- parsing ---------------------------------------------------------
-  function parsePixels(raw) {
+  function parse(raw, re) {
     var parts = String(raw || "").split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
     var seen = {}, valid = [], invalid = [];
     parts.forEach(function (p) {
-      if (!UUID_RE.test(p)) { invalid.push(p); return; }
+      if (!re.test(p)) { invalid.push(p); return; }
       var k = p.toLowerCase();
-      if (seen[k]) return;          // drop duplicates so one pixel isn't double-fired
+      if (seen[k]) return;
       seen[k] = 1;
       valid.push(p);
     });
     return { valid: valid, invalid: invalid };
   }
 
-  function renderParsed() {
-    var r = parsePixels(els.pixels.value);
+  function renderInto(node, r) {
     var html = "";
-    r.valid.forEach(function (p) { html += '<span class="pill">' + p.slice(0, 8) + "…</span>"; });
+    r.valid.forEach(function (p) { html += '<span class="pill">' + (p.length > 12 ? p.slice(0, 10) + "…" : p) + "</span>"; });
     r.invalid.forEach(function (p) {
       var safe = p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       html += '<span class="pill bad">' + (safe.length > 20 ? safe.slice(0, 20) + "…" : safe) + " ✕</span>";
     });
-    if (!r.valid.length && !r.invalid.length) html = "No pixel IDs entered.";
+    if (!r.valid.length && !r.invalid.length) html = "";
     else html = r.valid.length + " valid" + (r.invalid.length ? ", " + r.invalid.length + " invalid" : "") + "<br>" + html;
-    els.parsed.innerHTML = html;
-    els.fire.disabled = r.valid.length === 0;
-    return r;
+    node.innerHTML = html;
   }
 
-  // ---- Snapchat Pixel base snippet -------------------------------------
-  (function (e, t, n) {
-    if (e.snaptr) return;
-    var a = e.snaptr = function () {
-      a.handleRequest ? a.handleRequest.apply(a, arguments) : a.queue.push(arguments);
-    };
-    a.queue = [];
-    var s = "script", r = t.createElement(s);
-    r.async = !0;
-    r.src = n;
-    var u = t.getElementsByTagName(s)[0];
-    u.parentNode.insertBefore(r, u);
-  })(window, document, "https://sc-static.net/scevent.min.js");
+  function renderAll() {
+    var s = parse(els.snap.value, SNAP_RE);
+    var t = parse(els.tiktok.value, TT_RE);
+    renderInto(els.snapParsed, s);
+    renderInto(els.tiktokParsed, t);
+    els.fire.disabled = (s.valid.length + t.valid.length) === 0;
+    return { snap: s, tiktok: t };
+  }
+
+  // ---- SDK base snippets (injected lazily) -----------------------------
+  var snapReady = false, ttReady = false;
+
+  function ensureSnap() {
+    if (snapReady) return;
+    snapReady = true;
+    (function (e, t, n) {
+      if (e.snaptr) return;
+      var a = e.snaptr = function () {
+        a.handleRequest ? a.handleRequest.apply(a, arguments) : a.queue.push(arguments);
+      };
+      a.queue = [];
+      var s = "script", r = t.createElement(s);
+      r.async = !0; r.src = n;
+      var u = t.getElementsByTagName(s)[0];
+      u.parentNode.insertBefore(r, u);
+    })(window, document, "https://sc-static.net/scevent.min.js");
+  }
+
+  function ensureTiktok() {
+    if (ttReady) return;
+    ttReady = true;
+    (function (w, d, t) {
+      w.TiktokAnalyticsObject = t;
+      var ttq = w[t] = w[t] || [];
+      ttq.methods = ["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"];
+      ttq.setAndDefer = function (a, b) { a[b] = function () { a.push([b].concat(Array.prototype.slice.call(arguments, 0))) } };
+      for (var i = 0; i < ttq.methods.length; i++) ttq.setAndDefer(ttq, ttq.methods[i]);
+      ttq.instance = function (a) { for (var e = ttq._i[a] || [], n = 0; n < ttq.methods.length; n++) ttq.setAndDefer(e, ttq.methods[n]); return e };
+      ttq.load = function (e, n) {
+        var r = "https://analytics.tiktok.com/i18n/pixel/events.js", o = n && n.partner;
+        ttq._i = ttq._i || {}; ttq._i[e] = []; ttq._i[e]._u = r;
+        ttq._t = ttq._t || {}; ttq._t[e] = +new Date;
+        ttq._o = ttq._o || {}; ttq._o[e] = n || {};
+        var s = document.createElement("script");
+        s.type = "text/javascript"; s.async = !0; s.src = r + "?sdkid=" + e + "&lib=" + t;
+        var f = document.getElementsByTagName("script")[0];
+        f.parentNode.insertBefore(s, f);
+      };
+    })(window, document, "ttq");
+  }
 
   // ---- firing ----------------------------------------------------------
-  var inited = [];
+  var live = { snap: [], tiktok: [] };
 
   function newTxn() {
     return "test-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
   }
 
   function firePurchases(price, currency, count) {
+    var priceNum = Number(price) || 0;
     for (var i = 0; i < count; i++) {
-      var payload = { price: String(price), currency: String(currency), transaction_id: newTxn() };
-      snaptr("track", "PURCHASE", payload);
-      log("track PURCHASE " + payload.price + " " + payload.currency + " → " + inited.length +
-          " pixel" + (inited.length === 1 ? "" : "s") + " (" + payload.transaction_id + ")", "ok");
+      var id = newTxn();
+      if (live.snap.length) {
+        window.snaptr("track", "PURCHASE", { price: String(price), currency: currency, transaction_id: id });
+        log("snap", "track PURCHASE " + price + " " + currency + " → " + live.snap.length +
+            " pixel" + (live.snap.length === 1 ? "" : "s") + " (" + id + ")", "ok");
+      }
+      if (live.tiktok.length) {
+        live.tiktok.forEach(function (p) {
+          window.ttq.instance(p).track("CompletePayment",
+            { value: priceNum, currency: currency, content_type: "product", content_id: "test-item" },
+            { event_id: id });
+        });
+        log("tiktok", "track CompletePayment " + price + " " + currency + " → " + live.tiktok.length +
+            " pixel" + (live.tiktok.length === 1 ? "" : "s") + " (" + id + ")", "ok");
+      }
     }
   }
 
-  function initAndFire(pixels, price, currency, count, auto) {
-    pixels.forEach(function (p) {
-      snaptr("init", p);
-      inited.push(p);
-      log("init " + p, "ok");
-    });
-    snaptr("track", "PAGE_VIEW");
-    log("track PAGE_VIEW → " + inited.length + " pixel" + (inited.length === 1 ? "" : "s"), "ok");
+  function initAndFire(snapPixels, tiktokPixels, price, currency, count, auto) {
+    if (snapPixels.length) {
+      ensureSnap();
+      snapPixels.forEach(function (p) { window.snaptr("init", p); live.snap.push(p); log("snap", "init " + p, "ok"); });
+      window.snaptr("track", "PAGE_VIEW");
+      log("snap", "track PAGE_VIEW → " + live.snap.length + " pixel" + (live.snap.length === 1 ? "" : "s"), "ok");
+    }
+    if (tiktokPixels.length) {
+      ensureTiktok();
+      tiktokPixels.forEach(function (p) { window.ttq.load(p); live.tiktok.push(p); log("tiktok", "load " + p, "ok"); });
+      window.ttq.page();
+      log("tiktok", "page → " + live.tiktok.length + " pixel" + (live.tiktok.length === 1 ? "" : "s"), "ok");
+    }
 
-    els.refire.disabled = false;
-    els.state.textContent = "Live on " + inited.length + " pixel" + (inited.length === 1 ? "" : "s") +
-      ". Editing the pixel list reloads the page.";
+    var total = live.snap.length + live.tiktok.length;
+    els.refire.disabled = total === 0;
+    els.state.textContent = "Live on " + live.snap.length + " Snap + " + live.tiktok.length +
+      " TikTok pixel(s). Editing either list reloads the page.";
 
     if (auto) firePurchases(price, currency, count);
-    else log("auto-fire disabled — use the button");
+    else log("", "auto-fire disabled — use the button");
   }
 
-  // ---- form → URL (reload for a clean init set) ------------------------
-  function submit() {
-    var r = renderParsed();
-    if (!r.valid.length) return;
-    if (r.invalid.length) log(r.invalid.length + " entry(s) ignored — not valid pixel IDs", "err");
-
-    var cfg = {
-      pixel: r.valid.join(","),
+  // ---- form → URL (reload for a clean load set) ------------------------
+  function currentInputs() {
+    return {
       price: els.price.value.trim() || "1.00",
       currency: (els.currency.value.trim() || "USD").toUpperCase(),
-      count: String(Math.max(1, Math.min(20, parseInt(els.count.value, 10) || 1)))
+      count: Math.max(1, Math.min(20, parseInt(els.count.value, 10) || 1))
     };
+  }
+
+  function submit() {
+    var r = renderAll();
+    if (!(r.snap.valid.length + r.tiktok.valid.length)) return;
+    var bad = r.snap.invalid.length + r.tiktok.invalid.length;
+    if (bad) log("", bad + " entry(s) ignored — not valid pixel IDs", "err");
+
+    var inp = currentInputs();
+    var cfg = { snap: r.snap.valid.join(","), tiktok: r.tiktok.valid.join(","), price: inp.price, currency: inp.currency, count: String(inp.count) };
     try { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); } catch (e) {}
-    location.search = "?pixel=" + encodeURIComponent(cfg.pixel) +
-                      "&price=" + encodeURIComponent(cfg.price) +
-                      "&currency=" + encodeURIComponent(cfg.currency) +
-                      "&count=" + encodeURIComponent(cfg.count);
+
+    var qs = [];
+    if (cfg.snap) qs.push("snap=" + encodeURIComponent(cfg.snap));
+    if (cfg.tiktok) qs.push("tiktok=" + encodeURIComponent(cfg.tiktok));
+    qs.push("price=" + encodeURIComponent(cfg.price));
+    qs.push("currency=" + encodeURIComponent(cfg.currency));
+    qs.push("count=" + encodeURIComponent(cfg.count));
+    location.search = "?" + qs.join("&");
   }
 
   // ---- boot ------------------------------------------------------------
@@ -326,32 +416,34 @@
   var saved = {};
   try { saved = JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch (e) {}
 
-  els.pixels.value   = (qs.get("pixel") || saved.pixel || "").split(",").filter(Boolean).join("\n");
+  var snapParam = qs.get("snap") || qs.get("pixel") || "";   // ?pixel= kept as alias
+  var ttParam = qs.get("tiktok") || "";
+
+  els.snap.value     = (snapParam || saved.snap || "").split(",").filter(Boolean).join("\n");
+  els.tiktok.value   = (ttParam || saved.tiktok || "").split(",").filter(Boolean).join("\n");
   els.price.value    = qs.get("price")    || saved.price    || "1.00";
   els.currency.value = qs.get("currency") || saved.currency || "USD";
   els.count.value    = qs.get("count")    || saved.count    || "1";
 
-  var r = renderParsed();
+  var parsed = renderAll();
 
-  els.pixels.addEventListener("input", renderParsed);
+  els.snap.addEventListener("input", renderAll);
+  els.tiktok.addEventListener("input", renderAll);
   els.fire.addEventListener("click", submit);
   els.refire.addEventListener("click", function () {
-    firePurchases(els.price.value.trim() || "1.00",
-                  (els.currency.value.trim() || "USD").toUpperCase(),
-                  Math.max(1, Math.min(20, parseInt(els.count.value, 10) || 1)));
+    var inp = currentInputs();
+    firePurchases(inp.price, inp.currency, inp.count);
   });
   els.clear.addEventListener("click", function () {
     els.log.innerHTML = '<li class="empty">Nothing fired yet.</li>';
   });
 
-  if (qs.get("pixel") && r.valid.length) {
-    initAndFire(r.valid,
-                els.price.value,
-                els.currency.value,
-                Math.max(1, Math.min(20, parseInt(els.count.value, 10) || 1)),
-                qs.get("auto") !== "0");
+  var firedFromUrl = (qs.get("snap") || qs.get("pixel") || qs.get("tiktok"));
+  if (firedFromUrl && (parsed.snap.valid.length + parsed.tiktok.valid.length)) {
+    var inp = currentInputs();
+    initAndFire(parsed.snap.valid, parsed.tiktok.valid, inp.price, inp.currency, inp.count, qs.get("auto") !== "0");
   } else {
-    els.state.textContent = "No pixels initialised yet — enter IDs and hit Fire PURCHASE.";
+    els.state.textContent = "No pixels loaded yet — enter IDs and hit Fire purchase.";
   }
 })();
 </script>
